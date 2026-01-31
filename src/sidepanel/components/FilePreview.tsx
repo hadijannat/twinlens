@@ -7,6 +7,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { X, ExternalLink, Download, AlertTriangle } from 'lucide-react';
 import type { PreviewableType } from '@shared/types';
 import { triggerDownload } from '@lib/file-utils';
+import { openBlobUrl } from '@lib/safe-navigation';
 import { ModelViewer } from './ModelViewer';
 
 // Local type to avoid conflict with AAS Blob type
@@ -63,7 +64,7 @@ export function FilePreview({ file, onClose }: FilePreviewProps) {
   }, [file.blobUrl, file.fileName]);
 
   const handleOpenInNewTab = useCallback(() => {
-    window.open(file.blobUrl, '_blank');
+    openBlobUrl(file.blobUrl);
   }, [file.blobUrl]);
 
   const renderContent = () => {

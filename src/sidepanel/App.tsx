@@ -22,6 +22,8 @@ import { useChat } from './hooks/useChat';
 import { useSettings } from './hooks/useSettings';
 import { compareStore } from '@lib/compare/store';
 import { fetchWithPermission } from '@lib/permissions';
+import { getProviderDisplayName } from '@lib/ai/settings';
+import { safeOpenUrl } from '@lib/safe-navigation';
 import type { PendingQRImage } from '@shared/types';
 import type { RegistryConfig, ShellDescriptor } from '@lib/registry/types';
 import { createRegistryClient } from '@lib/registry/client';
@@ -156,7 +158,7 @@ export default function App() {
       }
     } else {
       // Open external URL in new tab
-      window.open(url, '_blank');
+      safeOpenUrl(url);
       setPendingQR(null);
     }
   };
@@ -183,7 +185,7 @@ export default function App() {
       }
     } else {
       // Open external URL in new tab
-      window.open(url, '_blank');
+      safeOpenUrl(url);
     }
   };
 
@@ -322,8 +324,11 @@ export default function App() {
             context={chat.context}
             isLoading={chat.isLoading}
             isConfigured={chat.isConfigured}
+            needsConsent={chat.needsConsent}
+            providerName={chat.settings ? getProviderDisplayName(chat.settings.provider) : ''}
             onSendMessage={chat.sendMessage}
             onOpenSettings={() => setShowAISettings(true)}
+            onGrantConsent={chat.handleGrantConsent}
           />
         </ErrorBoundary>
       );

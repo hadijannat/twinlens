@@ -6,6 +6,7 @@
 import type { AIClient } from './client';
 import type { AISettings, AIResponse, AssetContext, ChatMessage } from './types';
 import { buildSystemPrompt } from './prompts';
+import { guardedFetch } from '../network-guard';
 
 interface AnthropicMessage {
   role: 'user' | 'assistant';
@@ -28,7 +29,7 @@ export class AnthropicClient implements AIClient {
     if (!this.isConfigured()) return false;
 
     try {
-      const response = await fetch(`${this.baseUrl}/messages`, {
+      const response = await guardedFetch(`${this.baseUrl}/messages`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
@@ -55,7 +56,7 @@ export class AnthropicClient implements AIClient {
     const systemPrompt = buildSystemPrompt(context);
     const anthropicMessages = this.convertMessages(messages);
 
-    const response = await fetch(`${this.baseUrl}/messages`, {
+    const response = await guardedFetch(`${this.baseUrl}/messages`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({

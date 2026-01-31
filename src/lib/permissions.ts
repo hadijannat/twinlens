@@ -3,6 +3,8 @@
  * Handles runtime permission requests for cross-origin access
  */
 
+import { guardedFetch, NetworkGuardOptions } from './network-guard';
+
 /**
  * Extract origin from URL for permission request
  */
@@ -60,12 +62,13 @@ export async function requestPermission(url: string): Promise<boolean> {
 }
 
 /**
- * Perform fetch with permission check
- * Throws if permission denied
+ * Perform fetch with permission check and network policy enforcement
+ * Throws if permission denied or network policy violated
  */
 export async function fetchWithPermission(
   url: string,
-  options?: RequestInit
+  options?: RequestInit,
+  guardOptions?: NetworkGuardOptions
 ): Promise<Response> {
   const hasIt = await hasPermission(url);
 
@@ -78,5 +81,5 @@ export async function fetchWithPermission(
     }
   }
 
-  return fetch(url, options);
+  return guardedFetch(url, options, guardOptions);
 }

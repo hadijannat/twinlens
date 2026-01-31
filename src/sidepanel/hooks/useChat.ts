@@ -10,16 +10,19 @@ import type { AASEnvironment } from '@shared/types';
 import { buildAssetContext } from '@lib/ai/context';
 import { loadAISettings, isProviderConfigured } from '@lib/ai/settings';
 import { createAIClient } from '@lib/ai/client';
+import { getConsentState, grantConsent, ConsentState } from '@lib/ai/consent';
 
 interface UseChatResult {
   messages: ChatMessage[];
   context: AssetContext | null;
   isLoading: boolean;
   isConfigured: boolean;
+  needsConsent: boolean;
   settings: AISettings | null;
   sendMessage: (content: string) => Promise<void>;
   clearMessages: () => void;
   updateSettings: (settings: AISettings) => void;
+  handleGrantConsent: () => Promise<void>;
 }
 
 export function useChat(environment: AASEnvironment | null): UseChatResult {
@@ -28,10 +31,12 @@ export function useChat(environment: AASEnvironment | null): UseChatResult {
   const [isLoading, setIsLoading] = useState(false);
   const [settings, setSettings] = useState<AISettings | null>(null);
   const [client, setClient] = useState<AIClient | null>(null);
+  const [consentState, setConsentState] = useState<ConsentState>({ hasConsented: false });
 
-  // Load settings on mount
+  // Load settings and consent state on mount
   useEffect(() => {
     loadAISettings().then(setSettings);
+    getConsentState().then(setConsentState);
   }, []);
 
   // Build context when environment changes
@@ -133,14 +138,33 @@ export function useChat(environment: AASEnvironment | null): UseChatResult {
     setSettings(newSettings);
   }, []);
 
+  // Check if consent is needed (no consent or different provider)
+  const needsConsent = context !== null &&
+    (!consentState.hasConsented ||
+     consentState.consentedProvider !== settings?.provider);
+
+  // Handle granting consent
+  const handleGrantConsent = useCallback(async () => {
+    if (settings) {
+      await grantConsent(settings.provider);
+      setConsentState({
+        hasConsented: true,
+        consentedProvider: settings.provider,
+        consentTimestamp: Date.now(),
+      });
+    }
+  }, [settings]);
+
   return {
     messages,
     context,
     isLoading,
     isConfigured: isProviderConfigured(settings),
+    needsConsent,
     settings,
     sendMessage,
     clearMessages,
     updateSettings,
+    handleGrantConsent,
   };
 }

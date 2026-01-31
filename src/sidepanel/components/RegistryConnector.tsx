@@ -3,8 +3,8 @@
  * Modal for configuring registry connection settings
  */
 
-import { useState, useCallback } from 'react';
-import { X, Server, Check, AlertCircle, Loader } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { X, Server, Check, AlertCircle, Loader, AlertTriangle } from 'lucide-react';
 import type { RegistryConfig } from '@lib/registry/types';
 import { createRegistryClient } from '@lib/registry/client';
 
@@ -37,6 +37,25 @@ export function RegistryConnector({
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
+  const [urlWarning, setUrlWarning] = useState<string | null>(null);
+
+  // Check for HTTP URL warning
+  useEffect(() => {
+    if (!baseUrl.trim()) {
+      setUrlWarning(null);
+      return;
+    }
+    try {
+      const parsed = new URL(baseUrl);
+      if (parsed.protocol === 'http:') {
+        setUrlWarning('Warning: HTTP is not encrypted. Credentials may be exposed.');
+      } else {
+        setUrlWarning(null);
+      }
+    } catch {
+      setUrlWarning('Invalid URL');
+    }
+  }, [baseUrl]);
 
   const handleTest = useCallback(async () => {
     if (!baseUrl.trim()) {
@@ -131,6 +150,12 @@ export function RegistryConnector({
               onChange={(e) => setBaseUrl(e.target.value)}
             />
             <span className="form-hint">Base URL of the AAS Registry API</span>
+            {urlWarning && (
+              <div className="form-warning">
+                <AlertTriangle size={14} />
+                <span>{urlWarning}</span>
+              </div>
+            )}
           </div>
 
           <div className="form-group">

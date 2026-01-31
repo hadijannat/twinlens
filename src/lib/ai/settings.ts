@@ -97,6 +97,14 @@ export function getProviderPreset(provider: AIProvider): ProviderPreset | undefi
 }
 
 /**
+ * Get human-readable display name for a provider
+ */
+export function getProviderDisplayName(provider: AIProvider): string {
+  const preset = getProviderPreset(provider);
+  return preset?.label ?? provider;
+}
+
+/**
  * Get models for a provider (from preset defaults)
  */
 export function getModelsForProvider(

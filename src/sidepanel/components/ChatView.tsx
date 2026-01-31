@@ -4,7 +4,7 @@
  */
 
 import { useRef, useEffect } from 'react';
-import { MessageSquare, Settings, Sparkles } from 'lucide-react';
+import { MessageSquare, Settings, Sparkles, Shield } from 'lucide-react';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import type { ChatMessage as ChatMessageType, AssetContext } from '@lib/ai/types';
@@ -15,8 +15,11 @@ interface ChatViewProps {
   context: AssetContext | null;
   isLoading: boolean;
   isConfigured: boolean;
+  needsConsent: boolean;
+  providerName: string;
   onSendMessage: (message: string) => void;
   onOpenSettings: () => void;
+  onGrantConsent: () => void;
   onCitationClick?: (path: string) => void;
 }
 
@@ -25,8 +28,11 @@ export function ChatView({
   context,
   isLoading,
   isConfigured,
+  needsConsent,
+  providerName,
   onSendMessage,
   onOpenSettings,
+  onGrantConsent,
   onCitationClick,
 }: ChatViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -87,13 +93,31 @@ export function ChatView({
         </button>
       </div>
 
+      {needsConsent && (
+        <div className="consent-dialog">
+          <Shield size={20} aria-hidden="true" />
+          <p>
+            To answer questions, asset data will be sent to{' '}
+            <strong>{providerName}</strong>.
+          </p>
+          <div className="consent-actions">
+            <button className="btn btn-secondary" onClick={onOpenSettings}>
+              Change Provider
+            </button>
+            <button className="btn btn-primary" onClick={onGrantConsent}>
+              I Consent
+            </button>
+          </div>
+        </div>
+      )}
+
       <div
         className="chat-messages"
         role="log"
         aria-live="polite"
         aria-label="Chat messages"
       >
-        {messages.length === 0 && (
+        {messages.length === 0 && !needsConsent && (
           <div className="chat-welcome">
             <Sparkles size={24} className="chat-welcome-icon" aria-hidden="true" />
             <p>Ask me anything about this asset!</p>

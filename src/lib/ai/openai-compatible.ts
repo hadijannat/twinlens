@@ -7,6 +7,8 @@ import type { AISettings, AIResponse, AssetContext, ChatMessage } from './types'
 import type { AIClient } from './client';
 import { getEffectiveBaseUrl, getEffectiveModel } from './settings';
 import { formatContextForPrompt } from './context';
+import { guardedFetch } from '../network-guard';
+import { sanitizeHeaders } from './header-sanitizer';
 
 interface OpenAIMessage {
   role: 'system' | 'user' | 'assistant';
@@ -67,10 +69,9 @@ export class OpenAICompatibleClient implements AIClient {
       headers['Authorization'] = `Bearer ${this.settings.apiKey.trim()}`;
     }
 
-    // Add extra headers if provided
-    if (this.settings.extraHeaders) {
-      Object.assign(headers, this.settings.extraHeaders);
-    }
+    // Add extra headers if provided (sanitized)
+    const safeExtraHeaders = sanitizeHeaders(this.settings.extraHeaders);
+    Object.assign(headers, safeExtraHeaders);
 
     // Add OpenRouter-specific headers for app attribution
     if (this.settings.provider === 'openrouter' || this.baseUrl.includes('openrouter.ai')) {
@@ -100,7 +101,7 @@ export class OpenAICompatibleClient implements AIClient {
     headers: Record<string, string>,
     body: object
   ): Promise<AIResponse> {
-    const response = await fetch(endpoint, {
+    const response = await guardedFetch(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
@@ -131,7 +132,7 @@ export class OpenAICompatibleClient implements AIClient {
     body: object,
     onStream: (chunk: string) => void
   ): Promise<AIResponse> {
-    const response = await fetch(endpoint, {
+    const response = await guardedFetch(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
@@ -210,11 +211,10 @@ export class OpenAICompatibleClient implements AIClient {
         headers['Authorization'] = `Bearer ${this.settings.apiKey.trim()}`;
       }
 
-      if (this.settings.extraHeaders) {
-        Object.assign(headers, this.settings.extraHeaders);
-      }
+      const safeExtraHeaders = sanitizeHeaders(this.settings.extraHeaders);
+      Object.assign(headers, safeExtraHeaders);
 
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      const response = await guardedFetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers,
         body: JSON.stringify({

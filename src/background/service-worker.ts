@@ -3,6 +3,9 @@
  * Handles extension lifecycle, context menus, and side panel registration
  */
 
+// Maximum allowed QR image size (5MB)
+const MAX_QR_IMAGE_SIZE = 5 * 1024 * 1024;
+
 // Register side panel behavior on extension install
 chrome.runtime.onInstalled.addListener(() => {
   // Set up side panel to open on action click
@@ -38,13 +41,36 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   if (info.menuItemId === 'scan-qr-code' && info.srcUrl) {
     try {
+      // Validate URL scheme
+      let parsed: URL;
+      try {
+        parsed = new URL(info.srcUrl);
+      } catch {
+        throw new Error('Invalid URL');
+      }
+
+      if (!['https:', 'http:'].includes(parsed.protocol)) {
+        throw new Error(`Invalid URL scheme: ${parsed.protocol}`);
+      }
+
       // Fetch the image in the service worker (avoids CORS issues)
       const response = await fetch(info.srcUrl);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
 
+      // Check Content-Length header if available
+      const contentLength = response.headers.get('Content-Length');
+      if (contentLength && parseInt(contentLength, 10) > MAX_QR_IMAGE_SIZE) {
+        throw new Error('Image too large (max 5MB)');
+      }
+
       const blob = await response.blob();
+
+      // Verify actual blob size
+      if (blob.size > MAX_QR_IMAGE_SIZE) {
+        throw new Error('Image too large (max 5MB)');
+      }
 
       // Convert to base64 using FileReader (more efficient than byte-by-byte)
       const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -149,6 +175,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     return true;
   }
+});
+
+// Clean up scan results when tabs are closed
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  try {
+    await chrome.storage.local.remove(`scanResult_${tabId}`);
+  } catch (err) {
+    console.warn('Failed to cleanup scan result for tab:', tabId, err);
+  }
+});
+
+/**
+ * Clean up orphaned scan results from tabs that no longer exist
+ * This handles edge cases where tabs were closed while extension was disabled
+ */
+async function cleanupOrphanedResults(): Promise<void> {
+  try {
+    const storage = await chrome.storage.local.get(null);
+    const scanKeys = Object.keys(storage).filter((k) => k.startsWith('scanResult_'));
+
+    if (scanKeys.length === 0) return;
+
+    const tabs = await chrome.tabs.query({});
+    const tabIds = new Set(tabs.map((t) => String(t.id)));
+
+    const orphaned = scanKeys.filter((k) => {
+      const tabId = k.replace('scanResult_', '');
+      return !tabIds.has(tabId);
+    });
+
+    if (orphaned.length > 0) {
+      await chrome.storage.local.remove(orphaned);
+      console.log(`Cleaned up ${orphaned.length} orphaned scan result(s)`);
+    }
+  } catch (err) {
+    console.warn('Failed to cleanup orphaned results:', err);
+  }
+}
+
+// Run orphan cleanup on extension install/update
+chrome.runtime.onInstalled.addListener(() => {
+  cleanupOrphanedResults();
 });
 
 export {};
