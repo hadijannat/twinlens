@@ -72,6 +72,7 @@ const DataTypeDefXsdSchema = z.enum([
   'xs:hexBinary',
   'xs:int',
   'xs:integer',
+  'xs:langString',
   'xs:long',
   'xs:negativeInteger',
   'xs:nonNegativeInteger',
@@ -146,10 +147,23 @@ const AssetInformationSchema = z.object({
 // Submodel Elements (Forward declaration pattern for recursive types)
 // ============================================================================
 
+// V2 description format: { langString: [...] }
+const LegacyDescriptionSchema = z.object({
+  langString: z.array(z.object({
+    lang: z.string().optional(),
+    language: z.string().optional(),
+    '#text': z.string().optional(),
+    text: z.string().optional(),
+  })).optional(),
+}).passthrough();
+
 const SubmodelElementBaseSchema = z.object({
   idShort: z.string().optional(),
   displayName: z.array(LangStringSetSchema).optional(),
-  description: z.array(LangStringSetSchema).optional(),
+  description: z.union([
+    z.array(LangStringSetSchema),
+    LegacyDescriptionSchema,
+  ]).optional(),
   extensions: z.array(ExtensionSchema).optional(),
   semanticId: ReferenceSchema.optional(),
   supplementalSemanticIds: z.array(ReferenceSchema).optional(),

@@ -277,4 +277,58 @@ describe('AASEnvironmentSchema', () => {
     const result = AASEnvironmentSchema.safeParse(envWithAnnotatedRel);
     expect(result.success).toBe(true);
   });
+
+  it('validates Property with xs:langString valueType', () => {
+    const envWithLangString = {
+      assetAdministrationShells: [],
+      submodels: [
+        {
+          modelType: 'Submodel',
+          id: 'urn:example:submodel:langstring',
+          submodelElements: [
+            {
+              modelType: 'Property',
+              idShort: 'LocalizedDescription',
+              valueType: 'xs:langString',
+              value: 'Hello',
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = AASEnvironmentSchema.safeParse(envWithLangString);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates nested SubmodelElement with object description (v2 format)', () => {
+    const envWithNestedDesc = {
+      assetAdministrationShells: [],
+      submodels: [
+        {
+          modelType: 'Submodel',
+          id: 'urn:example:submodel:nested-desc',
+          submodelElements: [
+            {
+              modelType: 'SubmodelElementCollection',
+              idShort: 'ContactInfo',
+              description: { langString: [{ lang: 'en', '#text': 'Contact details' }] },
+              value: [
+                {
+                  modelType: 'Property',
+                  idShort: 'Phone',
+                  valueType: 'xs:string',
+                  value: '+1234567890',
+                  description: { langString: [{ lang: 'en', '#text': 'Phone number' }] },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = AASEnvironmentSchema.safeParse(envWithNestedDesc);
+    expect(result.success).toBe(true);
+  });
 });

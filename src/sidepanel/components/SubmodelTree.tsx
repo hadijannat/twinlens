@@ -1,6 +1,7 @@
 /**
  * SubmodelTree Component
  * Expandable tree view for submodels and their elements
+ * With template detection for specialized rendering
  */
 
 import { useState } from 'react';
@@ -19,6 +20,9 @@ import {
   List,
 } from 'lucide-react';
 import type { Submodel, SubmodelElement } from '@shared/types';
+import { detectTemplate, TemplateType } from '@lib/templates/detector';
+import { NameplateView } from './templates/NameplateView';
+import { CarbonFootprintView } from './templates/CarbonFootprintView';
 
 interface SubmodelTreeProps {
   submodels: Submodel[];
@@ -172,6 +176,75 @@ function SubmodelElementNode({ element }: { element: SubmodelElement }) {
   );
 }
 
+function renderTemplateView(type: TemplateType, submodel: Submodel): React.ReactNode {
+  switch (type) {
+    case TemplateType.NAMEPLATE:
+      return <NameplateView submodel={submodel} />;
+    case TemplateType.CARBON_FOOTPRINT:
+      return <CarbonFootprintView submodel={submodel} />;
+    default:
+      return null;
+  }
+}
+
+function SubmodelGenericTree({ submodel, index }: { submodel: Submodel; index: number }) {
+  const elements = safeArray(submodel.submodelElements);
+
+  return (
+    <TreeNode
+      key={submodel.id || index}
+      label={submodel.idShort || `Submodel ${index + 1}`}
+      icon={<FolderOpen size={14} />}
+      defaultExpanded
+    >
+      {elements.length > 0 ? (
+        elements.map((element, elemIndex) => (
+          <SubmodelElementNode
+            key={(element as SubmodelElement)?.idShort || elemIndex}
+            element={element as SubmodelElement}
+          />
+        ))
+      ) : (
+        <div style={{ padding: '0.5rem', color: 'var(--color-gray-400)' }}>
+          No elements
+        </div>
+      )}
+    </TreeNode>
+  );
+}
+
+function SubmodelWithTemplate({ submodel, index }: { submodel: Submodel; index: number }) {
+  const [showRaw, setShowRaw] = useState(false);
+  const templateType = detectTemplate(submodel);
+
+  // For known templates, render specialized view with toggle
+  if (templateType !== TemplateType.GENERIC) {
+    return (
+      <div className="tree-item">
+        <div className="template-header">
+          <span className="template-badge">{templateType.replace('_', ' ')}</span>
+          <span className="template-name">{submodel.idShort || `Submodel ${index + 1}`}</span>
+          <button
+            className="template-toggle"
+            onClick={() => setShowRaw(!showRaw)}
+          >
+            {showRaw ? 'Card View' : 'Tree View'}
+          </button>
+        </div>
+
+        {showRaw ? (
+          <SubmodelGenericTree submodel={submodel} index={index} />
+        ) : (
+          renderTemplateView(templateType, submodel)
+        )}
+      </div>
+    );
+  }
+
+  // Default: generic tree view
+  return <SubmodelGenericTree submodel={submodel} index={index} />;
+}
+
 export function SubmodelTree({ submodels }: SubmodelTreeProps) {
   // Safely convert to array
   const submodelList = safeArray(submodels);
@@ -194,30 +267,7 @@ export function SubmodelTree({ submodels }: SubmodelTreeProps) {
         if (!submodel || typeof submodel !== 'object') {
           return null;
         }
-
-        const elements = safeArray(submodel.submodelElements);
-
-        return (
-          <TreeNode
-            key={submodel.id || index}
-            label={submodel.idShort || `Submodel ${index + 1}`}
-            icon={<FolderOpen size={14} />}
-            defaultExpanded
-          >
-            {elements.length > 0 ? (
-              elements.map((element, elemIndex) => (
-                <SubmodelElementNode
-                  key={(element as SubmodelElement)?.idShort || elemIndex}
-                  element={element as SubmodelElement}
-                />
-              ))
-            ) : (
-              <div style={{ padding: '0.5rem', color: 'var(--color-gray-400)' }}>
-                No elements
-              </div>
-            )}
-          </TreeNode>
-        );
+        return <SubmodelWithTemplate key={submodel.id || index} submodel={submodel} index={index} />;
       })}
     </div>
   );

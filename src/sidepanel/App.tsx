@@ -11,10 +11,13 @@ import { QRScanResult } from './components/QRScanResult';
 import { PageFindings } from './components/PageFindings';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ExportMenu } from './components/ExportMenu';
+import { CompareCart } from './components/CompareCart';
+import { CompareView } from './components/CompareView';
 import { useAASXParser } from './hooks/useAASXParser';
+import { compareStore } from '@lib/compare/store';
 import type { PendingQRImage } from '@shared/types';
 
-type TabId = 'overview' | 'submodels' | 'documents' | 'compliance' | 'raw';
+type TabId = 'overview' | 'submodels' | 'documents' | 'compliance' | 'raw' | 'compare';
 
 interface Tab {
   id: TabId;
@@ -27,6 +30,7 @@ const TABS: Tab[] = [
   { id: 'documents', label: 'Documents' },
   { id: 'compliance', label: 'Compliance' },
   { id: 'raw', label: 'Raw JSON' },
+  { id: 'compare', label: 'Compare' },
 ];
 
 function getFileNameFromUrl(url: string): string {
@@ -43,6 +47,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [pendingQR, setPendingQR] = useState<PendingQRImage | null>(null);
   const [showPageFindings, setShowPageFindings] = useState(false);
+  const [compareMode, setCompareMode] = useState<'cart' | 'view'>('cart');
+  const [isPinned, setIsPinned] = useState(false);
   const { state, parseFile, parseArrayBuffer, setError, reset } = useAASXParser();
 
   const handleFileSelect = (file: File) => {
@@ -101,6 +107,34 @@ export default function App() {
   const handleFindingsDismiss = () => {
     setShowPageFindings(false);
   };
+
+  const handlePin = async () => {
+    if (state.status !== 'success') return;
+
+    const name = state.result.environment.assetAdministrationShells[0]?.idShort
+      || state.fileName
+      || 'Unnamed Asset';
+
+    try {
+      await compareStore.addItem({
+        name,
+        thumbnail: state.result.thumbnail,
+        data: state.result.environment,
+      });
+      setIsPinned(true);
+    } catch (err) {
+      console.error('Failed to pin item:', err);
+    }
+  };
+
+  // Check if already pinned when loading
+  useEffect(() => {
+    if (state.status === 'success') {
+      compareStore.hasItem(state.result.environment).then(setIsPinned);
+    } else {
+      setIsPinned(false);
+    }
+  }, [state]);
 
   // Check for pending AASX URL from context menu
   useEffect(() => {
@@ -268,6 +302,17 @@ export default function App() {
           </ErrorBoundary>
         );
 
+      case 'compare':
+        return (
+          <ErrorBoundary>
+            {compareMode === 'cart' ? (
+              <CompareCart onCompare={() => setCompareMode('view')} />
+            ) : (
+              <CompareView onBack={() => setCompareMode('cart')} />
+            )}
+          </ErrorBoundary>
+        );
+
       default:
         return null;
     }
@@ -287,6 +332,26 @@ export default function App() {
               aasxData={state.aasxData}
               fileName={state.fileName}
             />
+            {!isPinned ? (
+              <button
+                onClick={handlePin}
+                style={{
+                  padding: '0.25rem 0.5rem',
+                  fontSize: '0.75rem',
+                  background: 'var(--color-gray-100)',
+                  color: 'var(--color-gray-600)',
+                  border: '1px solid var(--color-gray-200)',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                }}
+              >
+                Pin to Compare
+              </button>
+            ) : (
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>
+                Pinned
+              </span>
+            )}
             <button
               onClick={reset}
               style={{
