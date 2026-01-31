@@ -6,6 +6,7 @@
 import type { CompareItem, CompareState } from './types';
 import { COMPARE_STORAGE_KEY, MAX_COMPARE_ITEMS } from './types';
 import type { AASEnvironment } from '@shared/types';
+import { normalizeEnvironment } from '@lib/normalized';
 
 export class CompareStore {
   private maxItems: number;
@@ -45,7 +46,7 @@ export class CompareStore {
    * Adds an item to the compare list
    * Returns the ID of the added item
    */
-  async addItem(item: Omit<CompareItem, 'id' | 'timestamp'>): Promise<string> {
+  async addItem(item: Omit<CompareItem, 'id' | 'timestamp' | 'normalized'>): Promise<string> {
     const items = await this.getItems();
 
     // Enforce max items limit
@@ -53,10 +54,17 @@ export class CompareStore {
       throw new Error(`Compare cart is full (max ${this.maxItems} items)`);
     }
 
+    // Normalize the AAS data for consistent comparison
+    const normalized = normalizeEnvironment(item.data, {
+      sourceType: 'AASX',
+      thumbnail: item.thumbnail,
+    });
+
     const newItem: CompareItem = {
       ...item,
       id: this.generateId(),
       timestamp: Date.now(),
+      normalized,
     };
 
     items.push(newItem);

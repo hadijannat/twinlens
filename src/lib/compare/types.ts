@@ -3,6 +3,7 @@
  */
 
 import type { AASEnvironment } from '@shared/types';
+import type { NormalizedAsset } from '@lib/normalized';
 
 export interface CompareItem {
   id: string;
@@ -10,6 +11,7 @@ export interface CompareItem {
   timestamp: number;
   thumbnail?: string;
   data: AASEnvironment;
+  normalized?: NormalizedAsset;
 }
 
 export interface CompareState {
