@@ -15,13 +15,16 @@ import { CompareCart } from './components/CompareCart';
 import { CompareView } from './components/CompareView';
 import { RegistryBrowser } from './components/RegistryBrowser';
 import { RegistryConnector } from './components/RegistryConnector';
+import { ChatView } from './components/ChatView';
+import { AISettingsModal } from './components/AISettingsModal';
 import { useAASXParser } from './hooks/useAASXParser';
+import { useChat } from './hooks/useChat';
 import { compareStore } from '@lib/compare/store';
 import type { PendingQRImage } from '@shared/types';
 import type { RegistryConfig, ShellDescriptor } from '@lib/registry/types';
 import { createRegistryClient } from '@lib/registry/client';
 
-type TabId = 'overview' | 'submodels' | 'documents' | 'compliance' | 'raw' | 'compare' | 'registry';
+type TabId = 'overview' | 'submodels' | 'documents' | 'compliance' | 'raw' | 'compare' | 'chat' | 'registry';
 
 interface Tab {
   id: TabId;
@@ -36,6 +39,7 @@ const TABS: Tab[] = [
   { id: 'compliance', label: 'Compliance' },
   { id: 'raw', label: 'Raw JSON' },
   { id: 'compare', label: 'Compare' },
+  { id: 'chat', label: 'Chat', alwaysShow: true },
   { id: 'registry', label: 'Registry', alwaysShow: true },
 ];
 
@@ -57,7 +61,12 @@ export default function App() {
   const [isPinned, setIsPinned] = useState(false);
   const [registryConfig, setRegistryConfig] = useState<RegistryConfig | null>(null);
   const [showRegistryConnector, setShowRegistryConnector] = useState(false);
+  const [showAISettings, setShowAISettings] = useState(false);
   const { state, parseFile, parseArrayBuffer, setError, reset } = useAASXParser();
+
+  // Get environment for chat hook
+  const environment = state.status === 'success' ? state.result.environment : null;
+  const chat = useChat(environment);
 
   const handleFileSelect = (file: File) => {
     parseFile(file);
@@ -237,6 +246,22 @@ export default function App() {
   }, []);
 
   const renderContent = () => {
+    // Chat tab is always available
+    if (activeTab === 'chat') {
+      return (
+        <ErrorBoundary>
+          <ChatView
+            messages={chat.messages}
+            context={chat.context}
+            isLoading={chat.isLoading}
+            isConfigured={chat.isConfigured}
+            onSendMessage={chat.sendMessage}
+            onOpenSettings={() => setShowAISettings(true)}
+          />
+        </ErrorBoundary>
+      );
+    }
+
     // Registry tab is always available
     if (activeTab === 'registry') {
       return (
@@ -452,6 +477,13 @@ export default function App() {
           setRegistryConfig(null);
           setShowRegistryConnector(false);
         }}
+      />
+
+      <AISettingsModal
+        isOpen={showAISettings}
+        settings={chat.settings}
+        onClose={() => setShowAISettings(false)}
+        onSave={chat.updateSettings}
       />
     </div>
   );
