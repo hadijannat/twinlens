@@ -144,6 +144,7 @@ export function FilePreview({ file, onClose }: FilePreviewProps) {
               onClick={handleDownload}
               className="preview-icon-btn"
               title="Download"
+              aria-label="Download file"
             >
               <Download size={18} />
             </button>
@@ -151,6 +152,7 @@ export function FilePreview({ file, onClose }: FilePreviewProps) {
               onClick={onClose}
               className="preview-icon-btn"
               title="Close"
+              aria-label="Close preview"
             >
               <X size={18} />
             </button>

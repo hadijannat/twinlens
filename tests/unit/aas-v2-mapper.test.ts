@@ -12,6 +12,8 @@ import {
   isAASv2,
   extractFirstKeyValue,
   ensureArray,
+  mapValueType,
+  mapMultiLanguageValue,
 } from '../../src/lib/aas-v2-mapper';
 
 describe('ensureArray', () => {
@@ -295,5 +297,166 @@ describe('isAASv2', () => {
     expect(isAASv2(null)).toBe(false);
     expect(isAASv2(undefined)).toBe(false);
     expect(isAASv2({})).toBe(false);
+  });
+});
+
+// Additional edge case tests for V2/V3 format handling
+describe('v2/v3 edge cases', () => {
+  it('handles v2 submodelRefs as single object', () => {
+    const v2AAS = {
+      idShort: 'SingleRefAAS',
+      identification: { id: 'urn:example:aas:1' },
+      assetRef: {
+        keys: { key: { type: 'Asset', '#text': 'urn:example:asset:1' } },
+      },
+      submodelRefs: {
+        submodelRef: {
+          keys: { key: { type: 'Submodel', '#text': 'urn:example:sm:1' } },
+        },
+      },
+    };
+
+    const result = mapAAS(v2AAS);
+    expect(result.submodels).toBeDefined();
+    expect(Array.isArray(result.submodels)).toBe(true);
+    expect((result.submodels as unknown[])?.length).toBe(1);
+  });
+
+  it('handles v2 submodelRefs as array', () => {
+    const v2AAS = {
+      idShort: 'MultiRefAAS',
+      identification: { id: 'urn:example:aas:1' },
+      assetRef: {
+        keys: { key: { type: 'Asset', '#text': 'urn:example:asset:1' } },
+      },
+      submodelRefs: {
+        submodelRef: [
+          { keys: { key: { type: 'Submodel', '#text': 'urn:example:sm:1' } } },
+          { keys: { key: { type: 'Submodel', '#text': 'urn:example:sm:2' } } },
+        ],
+      },
+    };
+
+    const result = mapAAS(v2AAS);
+    expect(result.submodels).toBeDefined();
+    expect((result.submodels as unknown[])?.length).toBe(2);
+  });
+
+  it('handles reference with value field (v3 style) in v2 document', () => {
+    // Some v2 files might have already partially converted references
+    const mixedRef = {
+      keys: [
+        { type: 'Submodel', value: 'urn:example:sm:1' },
+      ],
+    };
+
+    const result = mapReference(mixedRef);
+    expect(result?.keys?.[0]?.value).toBe('urn:example:sm:1');
+  });
+
+  it('handles missing submodelRefs (returns empty array)', () => {
+    const v2AAS = {
+      idShort: 'NoRefsAAS',
+      identification: { id: 'urn:example:aas:1' },
+      assetRef: {
+        keys: { key: { type: 'Asset', '#text': 'urn:example:asset:1' } },
+      },
+      // no submodelRefs - the mapper should not add submodels property
+    };
+
+    const result = mapAAS(v2AAS);
+    // When no refs are present, submodels isn't added
+    expect(result.submodels).toBeUndefined();
+  });
+
+  it('maps assetKind from string values correctly', () => {
+    const instanceAAS = {
+      identification: { id: 'urn:example:aas:1' },
+      kind: 'instance', // lowercase
+      assetRef: { keys: { key: { type: 'Asset', '#text': 'urn:example:asset:1' } } },
+    };
+
+    const result = mapAssetInformation(instanceAAS);
+    expect(result?.assetKind).toBe('instance');
+  });
+});
+
+// Tests for mapValueType helper function
+describe('mapValueType', () => {
+  it('returns xs:string for empty valueType', () => {
+    expect(mapValueType('')).toBe('xs:string');
+    expect(mapValueType(null)).toBe('xs:string');
+    expect(mapValueType(undefined)).toBe('xs:string');
+  });
+
+  it('preserves existing xs: prefix', () => {
+    expect(mapValueType('xs:string')).toBe('xs:string');
+    expect(mapValueType('xs:double')).toBe('xs:double');
+    expect(mapValueType('xs:boolean')).toBe('xs:boolean');
+  });
+
+  it('adds xs: prefix to bare type names', () => {
+    expect(mapValueType('string')).toBe('xs:string');
+    expect(mapValueType('int')).toBe('xs:int');
+    expect(mapValueType('double')).toBe('xs:double');
+    expect(mapValueType('boolean')).toBe('xs:boolean');
+    expect(mapValueType('date')).toBe('xs:date');
+    expect(mapValueType('dateTime')).toBe('xs:dateTime');
+  });
+
+  it('handles unknown types by adding xs: prefix', () => {
+    expect(mapValueType('customType')).toBe('xs:customType');
+  });
+});
+
+// Tests for mapMultiLanguageValue
+describe('mapMultiLanguageValue', () => {
+  it('handles v2 langString format', () => {
+    const v2Value = {
+      langString: [
+        { lang: 'en', '#text': 'English text' },
+        { lang: 'de', '#text': 'German text' },
+      ],
+    };
+
+    const result = mapMultiLanguageValue(v2Value);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({ language: 'en', text: 'English text' });
+    expect(result[1]).toEqual({ language: 'de', text: 'German text' });
+  });
+
+  it('handles single langString (not array)', () => {
+    const v2Value = {
+      langString: { lang: 'en', '#text': 'Single language' },
+    };
+
+    const result = mapMultiLanguageValue(v2Value);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({ language: 'en', text: 'Single language' });
+  });
+
+  it('handles v3 format (already array)', () => {
+    const v3Value = [
+      { language: 'en', text: 'English' },
+      { language: 'de', text: 'German' },
+    ];
+
+    const result = mapMultiLanguageValue(v3Value);
+    expect(result).toHaveLength(2);
+  });
+
+  it('returns empty array for null/undefined', () => {
+    expect(mapMultiLanguageValue(null)).toEqual([]);
+    expect(mapMultiLanguageValue(undefined)).toEqual([]);
+  });
+
+  it('handles numeric text values', () => {
+    const v2Value = {
+      langString: { lang: 'en', '#text': 42 },
+    };
+
+    const result = mapMultiLanguageValue(v2Value);
+    expect(result.length).toBeGreaterThan(0);
+    expect(result[0]?.text).toBe('42');
   });
 });

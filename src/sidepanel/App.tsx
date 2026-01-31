@@ -451,7 +451,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <Eye size={24} color="var(--color-primary)" />
+        <Eye size={24} color="var(--color-primary)" aria-hidden="true" />
         <h1>TwinLens</h1>
         {state.status === 'success' && (
           <>
@@ -463,6 +463,7 @@ export default function App() {
             {!isPinned ? (
               <button
                 onClick={handlePin}
+                aria-label="Pin current asset to compare cart"
                 style={{
                   padding: '0.25rem 0.5rem',
                   fontSize: '0.75rem',
@@ -476,12 +477,13 @@ export default function App() {
                 Pin to Compare
               </button>
             ) : (
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }} aria-live="polite">
                 Pinned
               </span>
             )}
             <button
               onClick={reset}
+              aria-label="Close current file and open a new one"
               style={{
                 padding: '0.25rem 0.5rem',
                 fontSize: '0.75rem',
@@ -499,12 +501,17 @@ export default function App() {
       </header>
 
       {visibleTabs.length > 0 && (
-        <nav className="tabs">
+        <nav className="tabs" role="tablist" aria-label="Asset views">
           {visibleTabs.map((tab) => (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              aria-controls={`panel-${tab.id}`}
+              id={`tab-${tab.id}`}
               className={`tab ${activeTab === tab.id ? 'active' : ''}`}
               onClick={() => setActiveTab(tab.id)}
+              tabIndex={activeTab === tab.id ? 0 : -1}
             >
               {tab.label}
             </button>
@@ -512,7 +519,12 @@ export default function App() {
         </nav>
       )}
 
-      <main className="app-content">
+      <main
+        className="app-content"
+        role="tabpanel"
+        id={`panel-${activeTab}`}
+        aria-labelledby={`tab-${activeTab}`}
+      >
         {pendingQR && (
           <QRScanResult
             pendingQR={pendingQR}

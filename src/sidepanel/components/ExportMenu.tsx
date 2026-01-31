@@ -81,34 +81,50 @@ export function ExportMenu({
         className="export-menu-trigger"
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
-        aria-haspopup="true"
+        aria-haspopup="menu"
+        aria-label="Export asset data"
       >
-        <Download size={14} />
+        <Download size={14} aria-hidden="true" />
         <span>Export</span>
       </button>
 
       {isOpen && (
-        <div className="export-menu-dropdown">
-          <button className="export-menu-item" onClick={handleCopyJson}>
+        <div className="export-menu-dropdown" role="menu" aria-label="Export options">
+          <button
+            className="export-menu-item"
+            onClick={handleCopyJson}
+            role="menuitem"
+            aria-label={copyStatus === 'success' ? 'JSON copied to clipboard' : 'Copy JSON to clipboard'}
+          >
             {copyStatus === 'success' ? (
-              <Check size={14} className="export-menu-icon success" />
+              <Check size={14} className="export-menu-icon success" aria-hidden="true" />
             ) : (
-              <Copy size={14} className="export-menu-icon" />
+              <Copy size={14} className="export-menu-icon" aria-hidden="true" />
             )}
             <span>
               {copyStatus === 'success' ? 'Copied!' : 'Copy JSON'}
             </span>
           </button>
 
-          <button className="export-menu-item" onClick={handleDownloadJson}>
-            <FileJson size={14} className="export-menu-icon" />
+          <button
+            className="export-menu-item"
+            onClick={handleDownloadJson}
+            role="menuitem"
+            aria-label="Download as JSON file"
+          >
+            <FileJson size={14} className="export-menu-icon" aria-hidden="true" />
             <span>Download JSON</span>
           </button>
 
-          <div className="export-menu-divider" />
+          <div className="export-menu-divider" role="separator" />
 
-          <button className="export-menu-item" onClick={handleDownloadAasx}>
-            <Package size={14} className="export-menu-icon" />
+          <button
+            className="export-menu-item"
+            onClick={handleDownloadAasx}
+            role="menuitem"
+            aria-label="Download original AASX file"
+          >
+            <Package size={14} className="export-menu-icon" aria-hidden="true" />
             <span>Download AASX</span>
           </button>
         </div>

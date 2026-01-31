@@ -579,6 +579,14 @@ export default function App() {
         <p>
           TwinLens v0.1.0 - Privacy-first Digital Product Passport viewer
         </p>
+        <a
+          href="https://github.com/YOUR_USERNAME/twinlens/blob/main/docs/PRIVACY.md"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="options-footer-link"
+        >
+          Privacy Policy
+        </a>
       </footer>
     </div>
   );

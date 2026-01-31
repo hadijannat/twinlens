@@ -83,6 +83,17 @@ export default defineConfig({
         },
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
+        manualChunks: {
+          // Lazy-loaded 3D viewer
+          'model-viewer': ['@google/model-viewer'],
+          // AI providers (already lazy-loaded, just ensure separation)
+          'ai-anthropic': ['./src/lib/ai/anthropic.ts'],
+          'ai-openai': ['./src/lib/ai/openai-compatible.ts'],
+          // Heavy dependencies
+          'jszip': ['jszip'],
+          // Settings chunk
+          'settings': ['./src/lib/ai/settings.ts', './src/lib/ai/types.ts'],
+        },
       },
     },
   },

@@ -212,8 +212,9 @@ export function DocumentsList({ files, aasxData }: DocumentsListProps) {
                       onClick={() => handlePreview(file)}
                       disabled={isLoading || !aasxData}
                       title="Preview"
+                      aria-label={`Preview ${file.path.split('/').pop() || 'file'}`}
                     >
-                      {isLoading ? <Loader2 size={14} className="spin" /> : <Eye size={14} />}
+                      {isLoading ? <Loader2 size={14} className="spin" aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
                     </button>
                   )}
                   <button
@@ -221,11 +222,12 @@ export function DocumentsList({ files, aasxData }: DocumentsListProps) {
                     onClick={() => handleDownload(file)}
                     disabled={isLoading || !aasxData}
                     title="Download"
+                    aria-label={`Download ${file.path.split('/').pop() || 'file'}`}
                   >
                     {isLoading && !showPreview ? (
-                      <Loader2 size={14} className="spin" />
+                      <Loader2 size={14} className="spin" aria-hidden="true" />
                     ) : (
-                      <Download size={14} />
+                      <Download size={14} aria-hidden="true" />
                     )}
                   </button>
                 </div>

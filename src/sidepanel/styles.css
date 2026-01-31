@@ -1,5 +1,40 @@
 /* TwinLens Base Styles */
 
+/* ============================================================================
+   Accessibility - Focus Indicators (WCAG 2.1 AA 2.4.7)
+   ============================================================================ */
+
+/* Global focus visible indicator */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Buttons and interactive elements */
+button:focus-visible,
+.tab:focus-visible,
+.tree-node:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Form inputs */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px var(--color-primary-50);
+}
+
+/* Remove default focus for mouse users, keep for keyboard */
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+
 :root {
   /* Core colors */
   --color-primary: #3b82f6;

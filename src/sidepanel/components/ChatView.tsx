@@ -75,23 +75,29 @@ export function ChatView({
   return (
     <div className="chat-view">
       <div className="chat-header">
-        <MessageSquare size={16} />
+        <MessageSquare size={16} aria-hidden="true" />
         <span>Chat with {context.assetIdShort || 'Asset'}</span>
         <button
           className="icon-btn chat-settings-btn"
           onClick={onOpenSettings}
           title="AI Settings"
+          aria-label="Open AI settings"
         >
-          <Settings size={14} />
+          <Settings size={14} aria-hidden="true" />
         </button>
       </div>
 
-      <div className="chat-messages">
+      <div
+        className="chat-messages"
+        role="log"
+        aria-live="polite"
+        aria-label="Chat messages"
+      >
         {messages.length === 0 && (
           <div className="chat-welcome">
-            <Sparkles size={24} className="chat-welcome-icon" />
+            <Sparkles size={24} className="chat-welcome-icon" aria-hidden="true" />
             <p>Ask me anything about this asset!</p>
-            <div className="chat-suggestions">
+            <div className="chat-suggestions" role="group" aria-label="Suggested questions">
               {suggestedQuestions.map((question, index) => (
                 <button
                   key={index}

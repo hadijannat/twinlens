@@ -4,8 +4,10 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import '@google/model-viewer';
 import { Loader2, AlertCircle, RotateCw } from 'lucide-react';
+
+// Lazy load model-viewer to reduce initial bundle size
+let modelViewerLoaded = false;
 
 interface ModelViewerProps {
   blobUrl: string;
@@ -15,10 +17,23 @@ interface ModelViewerProps {
 export function ModelViewer({ blobUrl, filename }: ModelViewerProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [ready, setReady] = useState(modelViewerLoaded);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Lazy load model-viewer on first use
+  useEffect(() => {
+    if (!modelViewerLoaded) {
+      import('@google/model-viewer').then(() => {
+        modelViewerLoaded = true;
+        setReady(true);
+      });
+    }
+  }, []);
 
   // Handle model-viewer events
   useEffect(() => {
+    if (!ready) return;
+
     const container = containerRef.current;
     if (!container) return;
 
@@ -38,7 +53,7 @@ export function ModelViewer({ blobUrl, filename }: ModelViewerProps) {
       viewer.removeEventListener('load', handleLoad);
       viewer.removeEventListener('error', handleError);
     };
-  }, [blobUrl]);
+  }, [blobUrl, ready]);
 
   const handleRetry = () => {
     setError(null);
@@ -59,13 +74,14 @@ export function ModelViewer({ blobUrl, filename }: ModelViewerProps) {
 
   return (
     <div className="model-viewer-container" ref={containerRef}>
-      {loading && (
+      {(loading || !ready) && (
         <div className="model-viewer-loading">
           <Loader2 size={32} className="spin" />
-          <p>Loading 3D model...</p>
+          <p>{ready ? 'Loading 3D model...' : 'Initializing viewer...'}</p>
         </div>
       )}
-      <model-viewer
+      {ready && (
+        <model-viewer
         src={blobUrl}
         alt={filename}
         camera-controls
@@ -74,6 +90,7 @@ export function ModelViewer({ blobUrl, filename }: ModelViewerProps) {
         loading="eager"
         style={{ width: '100%', height: '100%', opacity: loading ? 0 : 1 }}
       />
+      )}
     </div>
   );
 }
