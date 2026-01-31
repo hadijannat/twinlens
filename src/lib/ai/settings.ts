@@ -110,30 +110,37 @@ export function getModelsForProvider(
  * Check if settings are properly configured for the selected provider
  */
 export function isProviderConfigured(settings: AISettings | null): boolean {
-  if (!settings) return false;
+  if (!settings) {
+    console.log('[AI Config] No settings provided');
+    return false;
+  }
 
   const preset = getProviderPreset(settings.provider);
-  if (!preset) return false;
+  if (!preset) {
+    console.log('[AI Config] Unknown provider:', settings.provider);
+    return false;
+  }
 
   // Check API key requirement
   if (preset.requiresApiKey && !settings.apiKey?.trim()) {
+    console.log('[AI Config] Missing API key for provider:', settings.provider);
     return false;
   }
 
   // Check baseUrl for providers that need it
-  if (preset.supportsBaseUrl && !settings.baseUrl?.trim()) {
-    // Only fail if it's a custom-url provider without default
-    if (settings.provider === 'openai-compatible' && !settings.baseUrl) {
-      return false;
-    }
+  if (settings.provider === 'openai-compatible' && !settings.baseUrl?.trim()) {
+    console.log('[AI Config] Missing baseUrl for openai-compatible');
+    return false;
   }
 
   // Check model selection
   const model = settings.customModel?.trim() || settings.model;
   if (!model) {
+    console.log('[AI Config] Missing model. customModel:', settings.customModel, 'model:', settings.model);
     return false;
   }
 
+  console.log('[AI Config] Configured successfully:', { provider: settings.provider, model, hasApiKey: !!settings.apiKey });
   return true;
 }
 
@@ -167,19 +174,26 @@ export async function loadAISettings(): Promise<AISettings> {
     if (typeof chrome !== 'undefined' && chrome?.storage?.local) {
       const result = await chrome.storage.local.get(STORAGE_KEY);
       if (result[STORAGE_KEY]) {
-        return { ...DEFAULT_SETTINGS, ...result[STORAGE_KEY] };
+        const loaded = { ...DEFAULT_SETTINGS, ...result[STORAGE_KEY] };
+        console.log('[AI Settings] Loaded from storage:', { provider: loaded.provider, model: loaded.model, hasApiKey: !!loaded.apiKey });
+        return loaded;
       }
     }
   } catch (err) {
     console.warn('Failed to load AI settings:', err);
   }
+  console.log('[AI Settings] Using defaults (no saved settings)');
   return DEFAULT_SETTINGS;
 }
 
 export async function saveAISettings(settings: AISettings): Promise<void> {
+  console.log('[AI Settings] Saving:', { provider: settings.provider, model: settings.model, customModel: settings.customModel, hasApiKey: !!settings.apiKey });
   try {
     if (typeof chrome !== 'undefined' && chrome?.storage?.local) {
       await chrome.storage.local.set({ [STORAGE_KEY]: settings });
+      console.log('[AI Settings] Saved successfully');
+    } else {
+      console.warn('[AI Settings] chrome.storage.local not available');
     }
   } catch (err) {
     console.warn('Failed to save AI settings:', err);
