@@ -461,3 +461,21 @@ export interface ExtractWorkerResponse {
 }
 
 export type PreviewableType = 'image' | 'pdf' | 'text' | 'unsupported';
+
+// ============================================================================
+// QR Scanner Types
+// ============================================================================
+
+export interface PendingQRImage {
+  dataUrl?: string;
+  srcUrl: string;
+  error?: string;
+}
+
+export interface QRScanResult {
+  success: boolean;
+  data?: string;
+  resolvedUrl?: string;
+  linkType?: 'aas' | 'passport' | 'url' | 'unknown';
+  error?: string;
+}

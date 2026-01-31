@@ -9,7 +9,7 @@ import type { ParseResult, ParseWorkerRequest, ParseWorkerResponse } from '@shar
 type ParserState =
   | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'success'; result: ParseResult; aasxData: ArrayBuffer }
+  | { status: 'success'; result: ParseResult; aasxData: ArrayBuffer; fileName: string }
   | { status: 'error'; error: string };
 
 interface UseAASXParserReturn {
@@ -65,7 +65,7 @@ export function useAASXParser(): UseAASXParserReturn {
         const response = event.data;
 
         if (response.type === 'success' && response.result) {
-          setState({ status: 'success', result: response.result, aasxData: aasxDataCopy });
+          setState({ status: 'success', result: response.result, aasxData: aasxDataCopy, fileName });
         } else {
           setState({
             status: 'error',

@@ -104,3 +104,40 @@ export function triggerDownload(blobUrl: string, filename: string): void {
 export function getFilenameFromPath(path: string): string {
   return path.split('/').pop() || path;
 }
+
+/**
+ * Copy text to clipboard
+ */
+export async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Download data as a JSON file
+ */
+export function downloadJson(data: unknown, filename: string): void {
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = createBlobUrl(blob);
+  triggerDownload(url, filename);
+  revokeBlobUrl(url);
+}
+
+/**
+ * Download ArrayBuffer as a file
+ */
+export function downloadArrayBuffer(
+  data: ArrayBuffer,
+  filename: string,
+  contentType: string
+): void {
+  const blob = new Blob([data], { type: contentType });
+  const url = createBlobUrl(blob);
+  triggerDownload(url, filename);
+  revokeBlobUrl(url);
+}
