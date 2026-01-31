@@ -50,11 +50,16 @@ export default defineConfig({
         sidepanel: resolve(__dirname, 'src/sidepanel/index.html'),
         'service-worker': resolve(__dirname, 'src/background/service-worker.ts'),
         'parse-worker': resolve(__dirname, 'src/workers/parse-worker.ts'),
+        'extract-worker': resolve(__dirname, 'src/workers/extract-worker.ts'),
       },
       output: {
         entryFileNames: (chunkInfo) => {
           // Keep workers and service-worker at root level
-          if (chunkInfo.name === 'service-worker' || chunkInfo.name === 'parse-worker') {
+          if (
+            chunkInfo.name === 'service-worker' ||
+            chunkInfo.name === 'parse-worker' ||
+            chunkInfo.name === 'extract-worker'
+          ) {
             return '[name].js';
           }
           return 'assets/[name]-[hash].js';

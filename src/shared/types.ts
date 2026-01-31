@@ -443,3 +443,21 @@ export interface ParseWorkerResponse {
   result?: ParseResult;
   error?: string;
 }
+
+// ============================================================================
+// File Extraction Types
+// ============================================================================
+
+export interface ExtractWorkerRequest {
+  type: 'extract';
+  aasxData: ArrayBuffer;
+  filePath: string;
+}
+
+export interface ExtractWorkerResponse {
+  type: 'success' | 'error';
+  fileData?: ArrayBuffer;
+  error?: string;
+}
+
+export type PreviewableType = 'image' | 'pdf' | 'text' | 'unsupported';

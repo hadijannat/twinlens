@@ -148,7 +148,7 @@ export default function App() {
       case 'documents':
         return (
           <ErrorBoundary>
-            <DocumentsList files={result.supplementaryFiles} />
+            <DocumentsList files={result.supplementaryFiles} aasxData={state.aasxData} />
           </ErrorBoundary>
         );
 

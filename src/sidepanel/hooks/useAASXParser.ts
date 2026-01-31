@@ -9,7 +9,7 @@ import type { ParseResult, ParseWorkerRequest, ParseWorkerResponse } from '@shar
 type ParserState =
   | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'success'; result: ParseResult }
+  | { status: 'success'; result: ParseResult; aasxData: ArrayBuffer }
   | { status: 'error'; error: string };
 
 interface UseAASXParserReturn {
@@ -37,6 +37,10 @@ export function useAASXParser(): UseAASXParserReturn {
       // Terminate any existing worker
       workerRef.current?.terminate();
 
+      // Clone the ArrayBuffer before transferring to worker
+      // (transfer neuters the original, but we need it for file extraction)
+      const aasxDataCopy = fileData.slice(0);
+
       // Create new worker
       const worker = new Worker(
         new URL('../../workers/parse-worker.ts', import.meta.url),
@@ -61,7 +65,7 @@ export function useAASXParser(): UseAASXParserReturn {
         const response = event.data;
 
         if (response.type === 'success' && response.result) {
-          setState({ status: 'success', result: response.result });
+          setState({ status: 'success', result: response.result, aasxData: aasxDataCopy });
         } else {
           setState({
             status: 'error',
