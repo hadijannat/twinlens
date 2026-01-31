@@ -3,8 +3,34 @@
  * Handles extension lifecycle, context menus, and side panel registration
  */
 
+import { resolveIdLinkActive } from '@lib/id-resolution';
+import type { ResolutionOptions, ResolutionResult } from '@lib/id-resolution';
+
 // Maximum allowed QR image size (5MB)
 const MAX_QR_IMAGE_SIZE = 5 * 1024 * 1024;
+
+// Track active ID Link resolutions for cancellation
+const activeResolutions = new Map<string, AbortController>();
+
+/** Message types for ID Link resolution */
+interface ResolveIdLinkRequest {
+  type: 'RESOLVE_ID_LINK';
+  url: string;
+  options?: ResolutionOptions;
+  requestId: string;
+}
+
+interface ResolveIdLinkResponse {
+  type: 'RESOLVE_ID_LINK_RESULT';
+  requestId: string;
+  result?: ResolutionResult;
+  error?: string;
+}
+
+interface CancelResolutionRequest {
+  type: 'CANCEL_RESOLUTION';
+  requestId: string;
+}
 
 // Register side panel behavior on extension install
 chrome.runtime.onInstalled.addListener(() => {
@@ -174,6 +200,51 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse(result[`scanResult_${tabId}`] ?? null);
     });
     return true;
+  }
+
+  // Handle ID Link resolution requests
+  if (message.type === 'RESOLVE_ID_LINK') {
+    const { url, options, requestId } = message as ResolveIdLinkRequest;
+
+    // Create abort controller for this resolution
+    const controller = new AbortController();
+    activeResolutions.set(requestId, controller);
+
+    // Run resolution asynchronously
+    resolveIdLinkActive(url, { ...options, signal: controller.signal })
+      .then((result) => {
+        const response: ResolveIdLinkResponse = {
+          type: 'RESOLVE_ID_LINK_RESULT',
+          requestId,
+          result,
+        };
+        sendResponse(response);
+      })
+      .catch((error) => {
+        const response: ResolveIdLinkResponse = {
+          type: 'RESOLVE_ID_LINK_RESULT',
+          requestId,
+          error: error instanceof Error ? error.message : 'Resolution failed',
+        };
+        sendResponse(response);
+      })
+      .finally(() => {
+        activeResolutions.delete(requestId);
+      });
+
+    return true; // Keep channel open for async response
+  }
+
+  // Handle resolution cancellation
+  if (message.type === 'CANCEL_RESOLUTION') {
+    const { requestId } = message as CancelResolutionRequest;
+    const controller = activeResolutions.get(requestId);
+    if (controller) {
+      controller.abort();
+      activeResolutions.delete(requestId);
+    }
+    sendResponse({ cancelled: true });
+    return false;
   }
 });
 

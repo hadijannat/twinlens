@@ -4,10 +4,25 @@
  */
 
 import { useState, useEffect } from 'react';
-import { QrCode, Link, Package, ExternalLink, AlertCircle, Loader, X } from 'lucide-react';
+import {
+  QrCode,
+  Link,
+  Package,
+  ExternalLink,
+  AlertCircle,
+  Loader,
+  X,
+  Search,
+  Globe,
+  Database,
+  FileJson,
+  ChevronRight,
+} from 'lucide-react';
 import type { PendingQRImage } from '@shared/types';
 import { decodeQRFromDataUrl } from '@lib/qr-decoder';
 import { resolveIdLink, isValidIdLink, type ResolvedLink } from '@lib/id-resolver';
+import type { ResolvedEndpoint, EndpointType } from '@lib/id-resolution';
+import { useIdResolution } from '../hooks/useIdResolution';
 
 interface QRScanResultProps {
   pendingQR: PendingQRImage;
@@ -44,8 +59,108 @@ function getLinkTypeLabel(type: string): string {
   }
 }
 
+function getEndpointIcon(type: EndpointType) {
+  switch (type) {
+    case 'aasx':
+      return <Package size={16} />;
+    case 'aas-api':
+      return <Database size={16} />;
+    case 'submodel-api':
+      return <FileJson size={16} />;
+    case 'registry':
+      return <Database size={16} />;
+    case 'dpp-portal':
+      return <Globe size={16} />;
+    default:
+      return <Link size={16} />;
+  }
+}
+
+function getEndpointTypeLabel(type: EndpointType): string {
+  switch (type) {
+    case 'aasx':
+      return 'AASX Package';
+    case 'aas-api':
+      return 'AAS API';
+    case 'submodel-api':
+      return 'Submodel API';
+    case 'registry':
+      return 'Registry';
+    case 'dpp-portal':
+      return 'DPP Portal';
+    default:
+      return 'Endpoint';
+  }
+}
+
+function getDiscoveryMethodLabel(method: ResolvedEndpoint['discoveryMethod']): string {
+  switch (method) {
+    case 'direct':
+      return 'Direct';
+    case 'redirect':
+      return 'Redirect';
+    case 'well-known':
+      return 'Well-known';
+    case 'gs1-resolver':
+      return 'GS1';
+    case 'link-header':
+      return 'Link Header';
+    default:
+      return method;
+  }
+}
+
+interface EndpointCardProps {
+  endpoint: ResolvedEndpoint;
+  onOpen: (url: string) => void;
+}
+
+function EndpointCard({ endpoint, onOpen }: EndpointCardProps) {
+  return (
+    <button
+      className="qr-scan-endpoint"
+      onClick={() => onOpen(endpoint.url)}
+      title={endpoint.url}
+    >
+      <div className="qr-scan-endpoint-icon">
+        {getEndpointIcon(endpoint.type)}
+      </div>
+      <div className="qr-scan-endpoint-info">
+        <span className="qr-scan-endpoint-type">
+          {getEndpointTypeLabel(endpoint.type)}
+        </span>
+        <span className="qr-scan-endpoint-url">{endpoint.url}</span>
+      </div>
+      <div className="qr-scan-endpoint-meta">
+        <span className="qr-scan-endpoint-method">
+          {getDiscoveryMethodLabel(endpoint.discoveryMethod)}
+        </span>
+        <span className="qr-scan-endpoint-confidence">
+          {Math.round(endpoint.confidence * 100)}%
+        </span>
+      </div>
+      <ChevronRight size={16} className="qr-scan-endpoint-arrow" />
+    </button>
+  );
+}
+
 export function QRScanResult({ pendingQR, onOpenUrl, onDismiss }: QRScanResultProps) {
   const [state, setState] = useState<ScanState>({ status: 'scanning' });
+  const { resolve, cancel, status: resolutionStatus, result: resolutionResult, isResolving } = useIdResolution();
+
+  const handleResolveEndpoints = async () => {
+    if (state.status === 'success') {
+      try {
+        await resolve(state.data);
+      } catch {
+        // Error is handled by the hook
+      }
+    }
+  };
+
+  const handleOpenEndpoint = (url: string) => {
+    onOpenUrl(url);
+  };
 
   useEffect(() => {
     async function decodeQR() {
@@ -167,12 +282,65 @@ export function QRScanResult({ pendingQR, onOpenUrl, onDismiss }: QRScanResultPr
                   Open in TwinLens
                 </button>
               ) : (
-                <button className="qr-scan-btn" onClick={handleOpenUrl}>
-                  <ExternalLink size={16} />
-                  Open Link
-                </button>
+                <>
+                  <button className="qr-scan-btn" onClick={handleOpenUrl}>
+                    <ExternalLink size={16} />
+                    Open Link
+                  </button>
+                  {state.resolved.type === 'passport' && (
+                    isResolving ? (
+                      <button className="qr-scan-btn" onClick={cancel}>
+                        <X size={16} />
+                        Cancel
+                      </button>
+                    ) : (
+                      <button className="qr-scan-btn" onClick={handleResolveEndpoints}>
+                        <Search size={16} />
+                        Resolve Endpoints
+                      </button>
+                    )
+                  )}
+                </>
               )}
             </div>
+
+            {/* Resolution Results */}
+            {resolutionResult && resolutionResult.endpoints.length > 0 && (
+              <div className="qr-scan-endpoints">
+                <div className="qr-scan-endpoints-header">
+                  <span>Discovered Endpoints ({resolutionResult.endpoints.length})</span>
+                  {resolutionResult.duration && (
+                    <span className="qr-scan-endpoints-time">
+                      {resolutionResult.duration}ms
+                    </span>
+                  )}
+                </div>
+                <div className="qr-scan-endpoints-list">
+                  {resolutionResult.endpoints.map((endpoint, index) => (
+                    <EndpointCard
+                      key={`${endpoint.url}-${index}`}
+                      endpoint={endpoint}
+                      onOpen={handleOpenEndpoint}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Resolution Failed */}
+            {resolutionStatus === 'failed' && resolutionResult?.error && (
+              <div className="qr-scan-resolution-error">
+                <AlertCircle size={16} />
+                <span>{resolutionResult.error}</span>
+              </div>
+            )}
+
+            {/* No Endpoints Found */}
+            {resolutionStatus === 'resolved' && resolutionResult?.endpoints.length === 0 && (
+              <div className="qr-scan-no-endpoints">
+                <span>No AAS endpoints discovered</span>
+              </div>
+            )}
           </>
         )}
       </div>
