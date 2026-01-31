@@ -114,9 +114,9 @@ We may update this privacy policy to reflect changes in the extension. Material 
 ## Contact
 
 For privacy questions or concerns, please open an issue at:
-https://github.com/[owner]/twinlens/issues
+https://github.com/hadijannat/twinlens/issues
 
 ## Open Source
 
 TwinLens is open source. You can review the code yourself:
-https://github.com/[owner]/twinlens
+https://github.com/hadijannat/twinlens

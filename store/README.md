@@ -44,4 +44,4 @@ English (United States)
 
 ## Privacy Policy
 Link to `PRIVACY.md` in repository root or host at:
-`https://github.com/[owner]/twinlens/blob/main/PRIVACY.md`
+`https://github.com/hadijannat/twinlens/blob/main/PRIVACY.md`

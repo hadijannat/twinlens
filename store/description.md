@@ -58,7 +58,7 @@ View and validate Asset Administration Shell (AASX/JSON) files directly in your 
 ## Open Source
 
 TwinLens is free and open source. Report issues or contribute at:
-https://github.com/[owner]/twinlens
+https://github.com/hadijannat/twinlens
 
 ## Permissions Explained
 
