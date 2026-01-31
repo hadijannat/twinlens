@@ -11,7 +11,7 @@
 
 import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
-import { AASEnvironmentSchema } from '@shared/schemas';
+import { validateAASEnvironment } from './aas-validator';
 import type {
   AASEnvironment,
   ParseResult,
@@ -179,10 +179,15 @@ function normalizeSubmodelElements(elements: unknown): unknown[] {
 }
 
 function normalizeEnvironment(env: Partial<AASEnvironment>): AASEnvironment {
+  // Note: Don't set empty arrays for optional properties like conceptDescriptions
+  // The AAS spec requires these to be either absent or have at least one item
+  // Using spread to conditionally include conceptDescriptions only when non-empty
   const result: AASEnvironment = {
     assetAdministrationShells: ensureArray(env.assetAdministrationShells),
     submodels: ensureArray(env.submodels),
-    conceptDescriptions: ensureArray(env.conceptDescriptions),
+    ...(env.conceptDescriptions?.length
+      ? { conceptDescriptions: env.conceptDescriptions }
+      : {}),
   };
 
   // Normalize each submodel's elements
@@ -552,29 +557,16 @@ export async function parseAASX(fileData: ArrayBuffer): Promise<ParseResult> {
     rawEnvironment = transformXmlEnvironment(xmlData);
   }
 
-  // Step 4: Validate with Zod
-  const parseResult = AASEnvironmentSchema.safeParse(rawEnvironment);
+  // Step 4: Normalize to V3 format (handles V2 compatibility)
+  let environment = normalizeEnvironment(rawEnvironment as Partial<AASEnvironment>);
 
-  let environment: AASEnvironment;
+  // Step 5: Validate using official aas-core library
+  const validationResult = validateAASEnvironment(environment);
 
-  if (parseResult.success) {
-    environment = parseResult.data as unknown as AASEnvironment;
-  } else {
-    // Collect validation errors but still try to use the data
-    for (const issue of parseResult.error.issues) {
-      validationErrors.push({
-        path: issue.path.join('.'),
-        message: issue.message,
-      });
-    }
-
-    // Use raw data with normalization (best effort)
-    const raw = rawEnvironment as Partial<AASEnvironment>;
-    environment = normalizeEnvironment(raw);
+  // Collect all validation errors
+  for (const error of validationResult.allErrors) {
+    validationErrors.push(error);
   }
-
-  // Always normalize to handle edge cases
-  environment = normalizeEnvironment(environment);
 
   // Step 5: Extract thumbnail
   for (const thumbPath of THUMBNAIL_PATHS) {
@@ -662,22 +654,15 @@ export async function parseJSON(jsonData: string | ArrayBuffer): Promise<ParseRe
     });
   }
 
-  // Normalize the environment first
-  let environment = normalizeEnvironment(rawEnv as Partial<AASEnvironment>);
+  // Normalize the environment to V3 format
+  const environment = normalizeEnvironment(rawEnv as Partial<AASEnvironment>);
 
-  // Validate with schema
-  const parseResult = AASEnvironmentSchema.safeParse(environment);
+  // Validate using official aas-core library
+  const validationResult = validateAASEnvironment(environment);
 
-  if (parseResult.success) {
-    environment = parseResult.data as unknown as AASEnvironment;
-  } else {
-    // Collect validation errors but still use the data
-    for (const issue of parseResult.error.issues) {
-      validationErrors.push({
-        path: issue.path.join('.'),
-        message: issue.message,
-      });
-    }
+  // Collect all validation errors
+  for (const error of validationResult.allErrors) {
+    validationErrors.push(error);
   }
 
   return {
