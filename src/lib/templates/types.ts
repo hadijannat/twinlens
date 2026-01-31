@@ -56,7 +56,7 @@ export interface CarbonFootprintData {
   pcfUnit?: string;
   pcfCalculationMethod?: string;
   pcfReferenceValueForCalculation?: string;
-  pcfQuantityOfMeasureForCalculation?: number;
+  pcfQuantityOfMeasureForCalculation?: string;
   pcfLifeCyclePhases?: LifeCyclePhase[];
   pcfGoodsAddressHandover?: AddressInfo;
   publicationDate?: string;

@@ -3,12 +3,21 @@
  * Comparison logic for AAS environments
  */
 
-import type { AASEnvironment, Submodel, SubmodelElement, Property } from '@shared/types';
+import type { AASEnvironment, Submodel, SubmodelElement, Property, Entity, SubmodelElementList } from '@shared/types';
 
 export interface ComparedField {
   label: string;
   values: (string | undefined)[];
   isDifferent: boolean;
+}
+
+/**
+ * Generates a unique key for an element within its context
+ * Uses index as fallback when idShort is missing or duplicated
+ */
+function makeElementKey(prefix: string, element: SubmodelElement, index: number): string {
+  const idPart = element.idShort || `[${index}]`;
+  return prefix ? `${prefix} > ${idPart}` : idPart;
 }
 
 /**
@@ -34,29 +43,91 @@ export function extractKeyFields(env: AASEnvironment): Map<string, string | unde
   return fields;
 }
 
-function extractSubmodelFields(submodel: Submodel, fields: Map<string, string | undefined>, prefix = ''): void {
+function extractSubmodelFields(submodel: Submodel, fields: Map<string, string | undefined>): void {
   const elements = submodel.submodelElements || [];
-  const submodelPrefix = prefix || submodel.idShort || '';
+  // Use submodel idShort as prefix, with id fallback for uniqueness
+  const submodelPrefix = submodel.idShort || submodel.id.split('/').pop() || 'Submodel';
 
-  for (const element of elements) {
-    extractElementValue(element, fields, submodelPrefix);
+  for (let i = 0; i < elements.length; i++) {
+    const element = elements[i];
+    if (element) {
+      extractElementValue(element, fields, submodelPrefix, i);
+    }
   }
 }
 
-function extractElementValue(element: SubmodelElement, fields: Map<string, string | undefined>, prefix: string): void {
-  const key = prefix ? `${prefix} > ${element.idShort}` : element.idShort || '';
+function extractElementValue(
+  element: SubmodelElement,
+  fields: Map<string, string | undefined>,
+  prefix: string,
+  index: number
+): void {
+  const key = makeElementKey(prefix, element, index);
 
-  if (element.modelType === 'Property') {
-    const prop = element as Property;
-    fields.set(key, prop.value);
-  } else if (element.modelType === 'MultiLanguageProperty') {
-    const mlp = element as { value?: { language: string; text: string }[] };
-    fields.set(key, mlp.value?.[0]?.text);
-  } else if (element.modelType === 'SubmodelElementCollection') {
-    const collection = element as { value?: SubmodelElement[] };
-    for (const child of collection.value || []) {
-      extractElementValue(child, fields, key);
+  switch (element.modelType) {
+    case 'Property': {
+      const prop = element as Property;
+      fields.set(key, prop.value);
+      break;
     }
+    case 'MultiLanguageProperty': {
+      const mlp = element as { value?: { language: string; text: string }[] };
+      fields.set(key, mlp.value?.[0]?.text);
+      break;
+    }
+    case 'Range': {
+      const range = element as { min?: string; max?: string };
+      fields.set(key, `${range.min ?? '?'} - ${range.max ?? '?'}`);
+      break;
+    }
+    case 'SubmodelElementCollection': {
+      const collection = element as { value?: SubmodelElement[] };
+      const children = collection.value || [];
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i];
+        if (child) {
+          extractElementValue(child, fields, key, i);
+        }
+      }
+      break;
+    }
+    case 'SubmodelElementList': {
+      const list = element as SubmodelElementList;
+      const items = list.value || [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item) {
+          extractElementValue(item, fields, key, i);
+        }
+      }
+      break;
+    }
+    case 'Entity': {
+      const entity = element as Entity;
+      fields.set(`${key} (entityType)`, entity.entityType);
+      if (entity.globalAssetId) {
+        fields.set(`${key} (globalAssetId)`, entity.globalAssetId);
+      }
+      const statements = entity.statements || [];
+      for (let i = 0; i < statements.length; i++) {
+        const statement = statements[i];
+        if (statement) {
+          extractElementValue(statement, fields, key, i);
+        }
+      }
+      break;
+    }
+    case 'File': {
+      const file = element as { value?: string; contentType: string };
+      fields.set(key, file.value);
+      break;
+    }
+    case 'Blob': {
+      const blob = element as { contentType: string };
+      fields.set(key, `[${blob.contentType}]`);
+      break;
+    }
+    // ReferenceElement, RelationshipElement, etc. - skip for now
   }
 }
 

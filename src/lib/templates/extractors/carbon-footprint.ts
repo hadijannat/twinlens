@@ -47,12 +47,14 @@ function processElements(elements: SubmodelElement[], data: CarbonFootprintData)
     const mappedField = FIELD_MAPPINGS[idShort];
 
     if (mappedField) {
-      if (mappedField === 'pcfTotal' || mappedField === 'pcfQuantityOfMeasureForCalculation') {
+      if (mappedField === 'pcfTotal') {
+        // Only pcfTotal is numeric
         const value = extractNumericValue(element);
         if (value !== undefined) {
           (data as Record<string, number>)[mappedField] = value;
         }
       } else {
+        // All other fields are strings (including pcfQuantityOfMeasureForCalculation)
         const value = extractStringValue(element);
         if (value) {
           (data as Record<string, string>)[mappedField] = value;

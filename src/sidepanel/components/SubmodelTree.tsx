@@ -176,6 +176,16 @@ function SubmodelElementNode({ element }: { element: SubmodelElement }) {
   );
 }
 
+// Templates that have dedicated renderers
+const SUPPORTED_TEMPLATES = new Set([
+  TemplateType.NAMEPLATE,
+  TemplateType.CARBON_FOOTPRINT,
+]);
+
+function hasRenderer(type: TemplateType): boolean {
+  return SUPPORTED_TEMPLATES.has(type);
+}
+
 function renderTemplateView(type: TemplateType, submodel: Submodel): React.ReactNode {
   switch (type) {
     case TemplateType.NAMEPLATE:
@@ -217,8 +227,8 @@ function SubmodelWithTemplate({ submodel, index }: { submodel: Submodel; index: 
   const [showRaw, setShowRaw] = useState(false);
   const templateType = detectTemplate(submodel);
 
-  // For known templates, render specialized view with toggle
-  if (templateType !== TemplateType.GENERIC) {
+  // Only show specialized view for templates that have renderers
+  if (templateType !== TemplateType.GENERIC && hasRenderer(templateType)) {
     return (
       <div className="tree-item">
         <div className="template-header">
@@ -241,7 +251,7 @@ function SubmodelWithTemplate({ submodel, index }: { submodel: Submodel; index: 
     );
   }
 
-  // Default: generic tree view
+  // Default: generic tree view (for GENERIC and templates without renderers)
   return <SubmodelGenericTree submodel={submodel} index={index} />;
 }
 

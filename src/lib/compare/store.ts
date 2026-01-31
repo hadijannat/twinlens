@@ -82,18 +82,26 @@ export class CompareStore {
   }
 
   /**
+   * Gets a stable identifier for an environment
+   * Prefers globalAssetId, falls back to shell.id
+   */
+  private getEnvironmentId(env: AASEnvironment): string | undefined {
+    const shell = env.assetAdministrationShells[0];
+    if (!shell) return undefined;
+    return shell.assetInformation?.globalAssetId || shell.id;
+  }
+
+  /**
    * Checks if an environment is already in the compare list
-   * Uses globalAssetId as the identifier
+   * Uses globalAssetId or shell.id as identifier
    */
   async hasItem(env: AASEnvironment): Promise<boolean> {
     const items = await this.getItems();
-    const assetId = env.assetAdministrationShells[0]?.assetInformation?.globalAssetId;
+    const envId = this.getEnvironmentId(env);
 
-    if (!assetId) return false;
+    if (!envId) return false;
 
-    return items.some(item =>
-      item.data.assetAdministrationShells[0]?.assetInformation?.globalAssetId === assetId
-    );
+    return items.some(item => this.getEnvironmentId(item.data) === envId);
   }
 
   /**

@@ -4,7 +4,7 @@
  */
 
 import { Box, Package } from 'lucide-react';
-import type { AssetAdministrationShell } from '@shared/types';
+import type { AssetAdministrationShell, LangStringSet, LegacyDescription } from '@shared/types';
 
 interface AssetIdentityProps {
   shells: AssetAdministrationShell[];
@@ -16,6 +16,27 @@ function safeArray<T>(value: T | T[] | undefined | null): T[] {
   if (!value) return [];
   if (Array.isArray(value)) return value;
   return [value];
+}
+
+// Extract first description text from either v3 LangStringSet[] or v2 LegacyDescription format
+function getDescriptionText(
+  description: LangStringSet[] | LegacyDescription | undefined
+): string | undefined {
+  if (!description) return undefined;
+
+  // v3 format: LangStringSet[]
+  if (Array.isArray(description)) {
+    return description[0]?.text;
+  }
+
+  // v2 format: { langString: [...] }
+  const legacy = description as LegacyDescription;
+  if (legacy.langString && legacy.langString.length > 0) {
+    const first = legacy.langString[0];
+    return first?.text ?? first?.['#text'];
+  }
+
+  return undefined;
 }
 
 export function AssetIdentity({ shells, thumbnail }: AssetIdentityProps) {
@@ -35,7 +56,7 @@ export function AssetIdentity({ shells, thumbnail }: AssetIdentityProps) {
   return (
     <>
       {shellList.map((shell, index) => {
-        const description = safeArray(shell.description);
+        const descriptionText = getDescriptionText(shell.description);
         const submodels = safeArray(shell.submodels);
         const specificAssetIds = safeArray(shell.assetInformation?.specificAssetIds);
 
@@ -87,11 +108,11 @@ export function AssetIdentity({ shells, thumbnail }: AssetIdentityProps) {
                   </>
                 )}
 
-                {description.length > 0 && (
+                {descriptionText && (
                   <>
                     <dt>Description</dt>
                     <dd style={{ fontFamily: 'inherit' }}>
-                      {description[0]?.text || ''}
+                      {descriptionText}
                     </dd>
                   </>
                 )}

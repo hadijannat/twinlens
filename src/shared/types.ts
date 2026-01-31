@@ -70,10 +70,22 @@ export interface AdministrativeInformation {
   templateId?: string;
 }
 
+// Legacy v2 description format: { langString: [...] }
+export interface LegacyLangString {
+  lang?: string;
+  language?: string;
+  '#text'?: string;
+  text?: string;
+}
+
+export interface LegacyDescription {
+  langString?: LegacyLangString[];
+}
+
 export interface Referable {
   idShort?: string;
   displayName?: LangStringSet[];
-  description?: LangStringSet[];
+  description?: LangStringSet[] | LegacyDescription;
   extensions?: Extension[];
 }
 
@@ -248,6 +260,7 @@ export type DataTypeDefXsd =
   | 'xs:hexBinary'
   | 'xs:int'
   | 'xs:integer'
+  | 'xs:langString'
   | 'xs:long'
   | 'xs:negativeInteger'
   | 'xs:nonNegativeInteger'
