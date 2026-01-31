@@ -74,16 +74,45 @@ export function PageFindings({ onOpenUrl, onDismiss }: PageFindingsProps) {
       // Get current tab ID
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       const tab = tabs[0];
-
-      if (!tab?.id) {
+      if (!tab) {
         setError('Could not get current tab');
         setIsLoading(false);
         return;
       }
 
+      const tabId = tab.id;
+      if (typeof tabId !== 'number') {
+        setError('Could not get current tab');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!tab.url || (!tab.url.startsWith('http://') && !tab.url.startsWith('https://'))) {
+        setError('Page scanning is only available on standard web pages.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Inject scanner on demand (requires activeTab + scripting permission)
+      await new Promise<void>((resolve, reject) => {
+        chrome.scripting.executeScript(
+          {
+            target: { tabId },
+            files: ['content-scanner.js'],
+          },
+          () => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+            } else {
+              resolve();
+            }
+          }
+        );
+      });
+
       // Get scan result for this tab
       chrome.runtime.sendMessage(
-        { type: 'GET_SCAN_RESULT', tabId: tab.id },
+        { type: 'GET_SCAN_RESULT', tabId },
         (result) => {
           if (chrome.runtime.lastError) {
             setError('Could not get scan result');
