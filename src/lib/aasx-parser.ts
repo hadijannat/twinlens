@@ -633,3 +633,100 @@ export async function parseAASX(fileData: ArrayBuffer): Promise<ParseResult> {
     thumbnail,
   };
 }
+
+/**
+ * Parse a standalone JSON AAS environment
+ */
+export async function parseJSON(jsonData: string | ArrayBuffer): Promise<ParseResult> {
+  const validationErrors: ValidationError[] = [];
+
+  // Convert ArrayBuffer to string if needed
+  const jsonString =
+    typeof jsonData === 'string'
+      ? jsonData
+      : new TextDecoder().decode(jsonData);
+
+  // Parse JSON
+  let rawEnv: unknown;
+  try {
+    rawEnv = JSON.parse(jsonString);
+  } catch (err) {
+    throw new Error(`Invalid JSON: ${(err as Error).message}`);
+  }
+
+  // Determine if this is v2 or v3 format
+  if (isAASv2(rawEnv)) {
+    validationErrors.push({
+      path: '$',
+      message: 'Parsed as AAS v2 format (converted to v3)',
+    });
+  }
+
+  // Normalize the environment first
+  let environment = normalizeEnvironment(rawEnv as Partial<AASEnvironment>);
+
+  // Validate with schema
+  const parseResult = AASEnvironmentSchema.safeParse(environment);
+
+  if (parseResult.success) {
+    environment = parseResult.data as unknown as AASEnvironment;
+  } else {
+    // Collect validation errors but still use the data
+    for (const issue of parseResult.error.issues) {
+      validationErrors.push({
+        path: issue.path.join('.'),
+        message: issue.message,
+      });
+    }
+  }
+
+  return {
+    environment,
+    validationErrors,
+    supplementaryFiles: [],
+    thumbnail: undefined,
+  };
+}
+
+/**
+ * Parse either AASX or JSON format based on file content
+ */
+export async function parseAASData(
+  fileData: ArrayBuffer,
+  fileName: string
+): Promise<ParseResult> {
+  // Check file extension first
+  const ext = fileName.toLowerCase().split('.').pop();
+
+  if (ext === 'json') {
+    return parseJSON(fileData);
+  }
+
+  if (ext === 'aasx') {
+    return parseAASX(fileData);
+  }
+
+  // Try to detect format from content
+  if (fileData.byteLength === 0) {
+    throw new Error('Empty file. Please provide an .aasx or .json file.');
+  }
+
+  const header = new Uint8Array(fileData.slice(0, 4));
+  const byte0 = header[0] ?? 0;
+  const byte1 = header[1] ?? 0;
+
+  // Check for ZIP signature (PK..)
+  if (byte0 === 0x50 && byte1 === 0x4b) {
+    return parseAASX(fileData);
+  }
+
+  // Check for JSON (starts with { or [)
+  const firstChar = String.fromCharCode(byte0);
+  if (firstChar === '{' || firstChar === '[') {
+    return parseJSON(fileData);
+  }
+
+  throw new Error(
+    'Unsupported file format. Please provide an .aasx or .json file.'
+  );
+}

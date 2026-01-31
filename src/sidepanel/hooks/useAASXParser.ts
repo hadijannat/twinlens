@@ -112,13 +112,14 @@ export function useAASXParser(): UseAASXParserReturn {
     (file: File) => {
       const requestId = ++requestIdRef.current;
 
-      // Validate file extension
-      if (!file.name.toLowerCase().endsWith('.aasx')) {
+      // Validate file extension - allow .aasx and .json
+      const ext = file.name.toLowerCase().split('.').pop();
+      if (ext !== 'aasx' && ext !== 'json') {
         workerRef.current?.terminate();
         workerRef.current = null;
         setState({
           status: 'error',
-          error: 'Invalid file type. Please select an .aasx file.',
+          error: 'Invalid file type. Please select an .aasx or .json file.',
         });
         return;
       }

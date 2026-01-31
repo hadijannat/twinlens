@@ -61,7 +61,7 @@ export function RegistryConnector({
         password: authType === 'basic' ? password : undefined,
       };
 
-      const client = createRegistryClient(testConfig);
+      const client = await createRegistryClient(testConfig);
       const connected = await client.testConnection();
 
       if (connected) {

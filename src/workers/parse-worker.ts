@@ -1,20 +1,20 @@
 /**
  * Parse Worker
- * Offloads AASX parsing to a separate thread to prevent UI blocking
+ * Offloads AASX/JSON parsing to a separate thread to prevent UI blocking
  */
 
-import { parseAASX } from '@lib/aasx-parser';
+import { parseAASData } from '@lib/aasx-parser';
 import type { ParseWorkerRequest, ParseWorkerResponse } from '@shared/types';
 
 self.onmessage = async (event: MessageEvent<ParseWorkerRequest>) => {
-  const { type, fileData } = event.data;
+  const { type, fileData, fileName } = event.data;
 
   if (type !== 'parse') {
     return;
   }
 
   try {
-    const result = await parseAASX(fileData);
+    const result = await parseAASData(fileData, fileName || 'unknown.aasx');
 
     const response: ParseWorkerResponse = {
       type: 'success',

@@ -80,16 +80,16 @@ export function Dropzone({ onFileSelect }: DropzoneProps) {
       <input
         ref={inputRef}
         type="file"
-        accept=".aasx"
+        accept=".aasx,.json"
         onChange={handleFileChange}
         style={{ display: 'none' }}
-        aria-label="Select AASX file"
+        aria-label="Select AASX or JSON file"
       />
       <div className="dropzone-icon">
         <Upload size={32} />
       </div>
       <div className="dropzone-text">
-        <p className="dropzone-title">Drop an AASX file here</p>
+        <p className="dropzone-title">Drop an AASX or JSON file here</p>
         <p className="dropzone-subtitle">or click to browse</p>
       </div>
     </div>

@@ -145,6 +145,11 @@ export function AISettingsModal({
       return;
     }
 
+    // Require baseUrl for providers with supportsBaseUrl and no default
+    if (preset?.supportsBaseUrl && !preset?.baseUrl && !newSettings.baseUrl) {
+      return;
+    }
+
     const effectiveModel = getEffectiveModel(newSettings);
     if (!effectiveModel) {
       return;
@@ -160,8 +165,10 @@ export function AISettingsModal({
     const effectiveModel = useCustomModel ? customModel.trim() : model;
     if (!effectiveModel) return false;
     if (preset?.requiresApiKey && !apiKey.trim()) return false;
+    // Require baseUrl for providers with supportsBaseUrl and no default
+    if (preset?.supportsBaseUrl && !preset?.baseUrl && !baseUrl.trim()) return false;
     return true;
-  }, [useCustomModel, customModel, model, preset, apiKey]);
+  }, [useCustomModel, customModel, model, preset, apiKey, baseUrl]);
 
   if (!isOpen) return null;
 

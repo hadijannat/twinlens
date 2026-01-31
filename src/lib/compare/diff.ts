@@ -46,7 +46,7 @@ export function extractKeyFields(env: AASEnvironment): Map<string, string | unde
 function extractSubmodelFields(submodel: Submodel, fields: Map<string, string | undefined>): void {
   const elements = submodel.submodelElements || [];
   // Use submodel idShort as prefix, with id fallback for uniqueness
-  const submodelPrefix = submodel.idShort || submodel.id.split('/').pop() || 'Submodel';
+  const submodelPrefix = submodel.idShort || submodel.id?.split('/').pop() || 'Submodel';
 
   for (let i = 0; i < elements.length; i++) {
     const element = elements[i];

@@ -24,9 +24,12 @@ import {
   type LintStatus,
   type LintSeverity,
 } from '@lib/linter';
+import type { ComplianceSettings, SeverityOverride } from '@lib/settings';
+import { DEFAULT_COMPLIANCE } from '@lib/settings';
 
 interface ComplianceViewProps {
   environment: AASEnvironment;
+  settings?: ComplianceSettings;
 }
 
 interface CategorySectionProps {
@@ -150,16 +153,66 @@ function SummaryCard({ result }: { result: LintResult }) {
   );
 }
 
-export function ComplianceView({ environment }: ComplianceViewProps) {
+/**
+ * Apply severity override to issues
+ */
+function applySeverityOverride(
+  issues: LintIssue[],
+  override: SeverityOverride
+): LintIssue[] {
+  if (override === 'default') return issues;
+
+  return issues.map((issue) => {
+    if (issue.severity === 'warning') {
+      if (override === 'treat-warn-as-error') {
+        return { ...issue, severity: 'error' as const };
+      }
+      if (override === 'treat-warn-as-info') {
+        return { ...issue, severity: 'info' as const };
+      }
+    }
+    return issue;
+  });
+}
+
+export function ComplianceView({
+  environment,
+  settings = DEFAULT_COMPLIANCE,
+}: ComplianceViewProps) {
+  // Get enabled rule packs
+  const enabledRules = useMemo(() => {
+    const rules = [];
+    if (settings.enabledRulePacks.includes('eu-battery-regulation')) {
+      rules.push(batteryPassportRules);
+    }
+    // Add more rule packs here as they become available
+    return rules;
+  }, [settings.enabledRulePacks]);
+
   const result = useMemo(
-    () => executeLinter(environment, [batteryPassportRules]),
-    [environment]
+    () => executeLinter(environment, enabledRules),
+    [environment, enabledRules]
   );
 
+  // Apply settings to issues
+  const processedIssues = useMemo(() => {
+    let issues = result.issues;
+
+    // Filter out future rules if not showing them
+    if (!settings.showFutureRules) {
+      issues = issues.filter((issue) => issue.severity !== 'info');
+    }
+
+    // Apply severity override
+    issues = applySeverityOverride(issues, settings.severityOverride);
+
+    return issues;
+  }, [result.issues, settings.showFutureRules, settings.severityOverride]);
+
   const categories = useMemo(() => {
-    const grouped = groupIssuesByCategory(result.issues);
+    const grouped = groupIssuesByCategory(processedIssues);
     return Array.from(grouped.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [result.issues]);
+  }, [processedIssues]);
 
   if (result.issues.length === 0) {
     return (

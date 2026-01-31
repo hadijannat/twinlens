@@ -26,14 +26,16 @@ export function RegistryBrowser({ config, onConnect, onSelectShell }: RegistryBr
   // Initialize client when config changes
   useEffect(() => {
     if (config) {
-      const newClient = createRegistryClient(config);
-      setClient(newClient);
       setStatus('connecting');
       setError(null);
 
-      // Test connection
-      newClient.testConnection()
-        .then((connected) => {
+      // Create client and test connection
+      createRegistryClient(config)
+        .then((newClient) => {
+          setClient(newClient);
+          return newClient.testConnection().then((connected) => ({ newClient, connected }));
+        })
+        .then(({ newClient, connected }) => {
           setStatus(connected ? 'connected' : 'error');
           if (connected) {
             loadShells(newClient);

@@ -6,6 +6,7 @@
 import type { AASEnvironment } from '@shared/types';
 import type { RegistryConfig, RegistrySearchResult, ShellDescriptor, SubmodelDescriptor } from './types';
 import { RegistryError } from './types';
+import { fetchWithPermission } from '../permissions';
 
 /**
  * Abstract base class for registry clients
@@ -44,7 +45,7 @@ export abstract class RegistryClient {
     }
 
     try {
-      const response = await fetch(url, {
+      const response = await fetchWithPermission(url, {
         ...options,
         headers: { ...headers, ...options?.headers },
       });
@@ -97,10 +98,9 @@ export abstract class RegistryClient {
 /**
  * Create a registry client for the given config
  */
-export function createRegistryClient(config: RegistryConfig): RegistryClient {
-  // Import dynamically to avoid circular dependencies
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { BaSyxClient } = require('./basyx');
+export async function createRegistryClient(config: RegistryConfig): Promise<RegistryClient> {
+  // Dynamic import to avoid circular dependencies and work in ESM
+  const { BaSyxClient } = await import('./basyx');
 
   switch (config.type) {
     case 'basyx':

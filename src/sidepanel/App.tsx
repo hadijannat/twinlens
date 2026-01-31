@@ -19,7 +19,9 @@ import { ChatView } from './components/ChatView';
 import { AISettingsModal } from './components/AISettingsModal';
 import { useAASXParser } from './hooks/useAASXParser';
 import { useChat } from './hooks/useChat';
+import { useSettings } from './hooks/useSettings';
 import { compareStore } from '@lib/compare/store';
+import { fetchWithPermission } from '@lib/permissions';
 import type { PendingQRImage } from '@shared/types';
 import type { RegistryConfig, ShellDescriptor } from '@lib/registry/types';
 import { createRegistryClient } from '@lib/registry/client';
@@ -63,6 +65,7 @@ export default function App() {
   const [showRegistryConnector, setShowRegistryConnector] = useState(false);
   const [showAISettings, setShowAISettings] = useState(false);
   const { state, parseFile, parseArrayBuffer, setError, reset } = useAASXParser();
+  const appSettings = useSettings();
 
   // Get environment for chat hook
   const environment = state.status === 'success' ? state.result.environment : null;
@@ -209,7 +212,7 @@ export default function App() {
     if (!registryConfig) return;
 
     try {
-      const client = createRegistryClient(registryConfig);
+      const client = await createRegistryClient(registryConfig);
       const environment = await client.getShellEnvironment(shell.id);
 
       // Parse the environment as if it were loaded from a file
@@ -257,7 +260,7 @@ export default function App() {
 
       (async () => {
         try {
-          const res = await fetch(url);
+          const res = await fetchWithPermission(url);
           if (!res.ok) {
             throw new Error(`HTTP ${res.status}`);
           }
@@ -267,7 +270,8 @@ export default function App() {
         } catch (err) {
           console.error('Failed to load AASX from URL', err);
           if (!cancelled) {
-            setError('Failed to load AASX file from link.');
+            const message = err instanceof Error ? err.message : 'Failed to load AASX file from link.';
+            setError(message);
           }
         }
       })();
@@ -418,7 +422,7 @@ export default function App() {
       case 'compliance':
         return (
           <ErrorBoundary>
-            <ComplianceView environment={result.environment} />
+            <ComplianceView environment={result.environment} settings={appSettings.compliance} />
           </ErrorBoundary>
         );
 

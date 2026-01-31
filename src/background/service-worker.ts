@@ -45,16 +45,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       }
 
       const blob = await response.blob();
-      const arrayBuffer = await blob.arrayBuffer();
 
-      // Convert to base64 for storage (ArrayBuffer can't be stored directly)
-      const uint8Array = new Uint8Array(arrayBuffer);
-      let binary = '';
-      for (let i = 0; i < uint8Array.length; i++) {
-        binary += String.fromCharCode(uint8Array[i]!);
-      }
-      const base64 = btoa(binary);
-      const dataUrl = `data:${blob.type};base64,${base64}`;
+      // Convert to base64 using FileReader (more efficient than byte-by-byte)
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('Failed to read image'));
+        reader.readAsDataURL(blob);
+      });
 
       // Store the image data for the side panel
       await chrome.storage.local.set({
