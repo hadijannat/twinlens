@@ -72,8 +72,8 @@ export class OpenAICompatibleClient implements AIClient {
       Object.assign(headers, this.settings.extraHeaders);
     }
 
-    // Add OpenRouter-specific headers if using OpenRouter
-    if (this.baseUrl.includes('openrouter.ai')) {
+    // Add OpenRouter-specific headers for app attribution
+    if (this.settings.provider === 'openrouter' || this.baseUrl.includes('openrouter.ai')) {
       headers['HTTP-Referer'] = 'https://twinlens.app';
       headers['X-Title'] = 'TwinLens';
     }

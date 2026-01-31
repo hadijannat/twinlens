@@ -44,10 +44,11 @@ export interface SubmodelSummary {
  * Provider types:
  * - 'anthropic': Native Anthropic API (different format)
  * - 'openai': OpenAI API
- * - 'openai-compatible': Any OpenAI-compatible endpoint (OpenRouter, Together, Groq, etc.)
+ * - 'openrouter': OpenRouter API (access to many models)
+ * - 'openai-compatible': Any OpenAI-compatible endpoint (Together, Groq, etc.)
  * - 'ollama': Local Ollama instance (OpenAI-compatible)
  */
-export type AIProvider = 'anthropic' | 'openai' | 'openai-compatible' | 'ollama';
+export type AIProvider = 'anthropic' | 'openai' | 'openrouter' | 'openai-compatible' | 'ollama';
 
 /**
  * Provider metadata for UI and configuration

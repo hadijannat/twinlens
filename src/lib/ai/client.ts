@@ -22,6 +22,7 @@ export async function createAIClient(settings: AISettings): Promise<AIClient> {
       return new AnthropicClient(settings);
     }
     case 'openai':
+    case 'openrouter':
     case 'openai-compatible':
     case 'ollama': {
       const { OpenAICompatibleClient } = await import('./openai-compatible');
