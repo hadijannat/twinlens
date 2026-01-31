@@ -11,8 +11,7 @@
  * Handles multiple input formats:
  * - null/undefined → empty array
  * - Array → returns as-is
- * - Object (Record) → returns Object.values()
- * - Single value → wraps in array
+ * - Single value (including objects) → wraps in array
  *
  * This is particularly useful for parsing XML/JSON data where
  * single items may be represented as objects rather than arrays.
@@ -20,16 +19,12 @@
  * @example
  * ensureArray(null)                    // []
  * ensureArray([1, 2, 3])               // [1, 2, 3]
- * ensureArray({ a: 1, b: 2 })          // [1, 2]
+ * ensureArray({ key: 'value' })        // [{ key: 'value' }]
  * ensureArray('single')                // ['single']
  */
-export function ensureArray<T>(value: T | T[] | Record<string, T> | undefined | null): T[] {
+export function ensureArray<T>(value: T | T[] | undefined | null): T[] {
   if (!value) return [];
   if (Array.isArray(value)) return value;
-  if (typeof value === 'object' && value !== null) {
-    // Convert object to array of values
-    return Object.values(value as Record<string, T>);
-  }
   return [value];
 }
 
