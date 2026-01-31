@@ -44,7 +44,7 @@ export const DEFAULT_GENERAL: GeneralSettings = {
   localOnlyMode: false,
   theme: 'system',
   compactMode: false,
-  validationMode: 'strict',
+  validationMode: 'lenient', // Most real-world files have spec deviations
 };
 
 export const DEFAULT_COMPLIANCE: ComplianceSettings = {

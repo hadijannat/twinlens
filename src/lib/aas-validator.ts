@@ -38,6 +38,12 @@ function deepClean(value: unknown, _parentKey?: string): unknown {
         continue;
       }
 
+      // Fix: description/displayName should be arrays, not undefined - skip if invalid
+      if ((key === 'description' || key === 'displayName') && (val === undefined || val === null || !Array.isArray(val))) {
+        // Skip invalid description/displayName entirely
+        continue;
+      }
+
       // Fix: globalAssetId should be a string, not undefined
       if (key === 'globalAssetId' && (val === undefined || val === null)) {
         // Try to derive from parent context or use placeholder
@@ -45,11 +51,95 @@ function deepClean(value: unknown, _parentKey?: string): unknown {
         continue;
       }
 
-      // Fix: valueId with undefined keys - remove the whole valueId
+      // Fix: valueId with invalid keys - remove the whole valueId
       if (key === 'valueId' && val && typeof val === 'object') {
         const valueIdObj = val as Record<string, unknown>;
-        if (valueIdObj.keys === undefined || valueIdObj.keys === null) {
-          // Skip invalid valueId entirely
+        // Skip if keys is missing, undefined, null, or not an array
+        if (!Array.isArray(valueIdObj.keys)) {
+          continue;
+        }
+      }
+
+      // Fix: semanticId with invalid keys - remove the whole semanticId
+      if (key === 'semanticId' && val && typeof val === 'object') {
+        const semanticIdObj = val as Record<string, unknown>;
+        if (!Array.isArray(semanticIdObj.keys)) {
+          continue;
+        }
+      }
+
+      // Fix: version/revision should be strings, not numbers
+      if ((key === 'version' || key === 'revision') && typeof val === 'number') {
+        cleaned[key] = String(val);
+        continue;
+      }
+
+      // Fix: value field - depends on context (modelType and other properties)
+      if (key === 'value') {
+        const modelType = obj.modelType as string | undefined;
+        const collectionTypes = [
+          'SubmodelElementCollection',
+          'SubmodelElementList',
+          'Entity',
+          'AnnotatedRelationshipElement',
+          'Submodel'
+        ];
+
+        // Check if this explicitly looks like a collection type
+        const isExplicitCollection =
+          collectionTypes.includes(modelType || '') ||
+          (modelType && (modelType.includes('Collection') || modelType.includes('List')));
+
+        // Handle based on current value type and context
+        if (typeof val === 'number') {
+          // Numbers should be strings for Property values
+          cleaned[key] = String(val);
+          continue;
+        } else if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+          if (isExplicitCollection) {
+            // Collection with object value - convert to empty array
+            cleaned[key] = [];
+            continue;
+          } else {
+            // Non-collection with object value - convert to string
+            const valObj = val as Record<string, unknown>;
+            if (typeof valObj.value === 'string') {
+              cleaned[key] = valObj.value;
+            } else if (typeof valObj.text === 'string') {
+              cleaned[key] = valObj.text;
+            } else {
+              cleaned[key] = '';  // Use empty string instead of JSON to avoid further issues
+            }
+            continue;
+          }
+        } else if (typeof val === 'string' && isExplicitCollection) {
+          // Collection with string value - convert to empty array
+          cleaned[key] = [];
+          continue;
+        }
+      }
+
+      // Fix: invalid valueType values - map to valid AAS v3 DataTypeDefXsd
+      if (key === 'valueType' && typeof val === 'string') {
+        const valueTypeMap: Record<string, string> = {
+          'xs:langString': 'xs:string',
+          'langString': 'xs:string',
+          'xsd:langString': 'xs:string',
+          'xsd:string': 'xs:string',
+          'xsd:boolean': 'xs:boolean',
+          'xsd:integer': 'xs:integer',
+          'xsd:int': 'xs:int',
+          'xsd:double': 'xs:double',
+          'xsd:float': 'xs:float',
+          'xsd:decimal': 'xs:decimal',
+          'xsd:dateTime': 'xs:dateTime',
+          'xsd:date': 'xs:date',
+          'xsd:time': 'xs:time',
+          'xsd:anyURI': 'xs:anyURI',
+          'xsd:base64Binary': 'xs:base64Binary',
+        };
+        if (valueTypeMap[val]) {
+          cleaned[key] = valueTypeMap[val];
           continue;
         }
       }
