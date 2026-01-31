@@ -7,6 +7,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { X, ExternalLink, Download, AlertTriangle } from 'lucide-react';
 import type { PreviewableType } from '@shared/types';
 import { triggerDownload } from '@lib/file-utils';
+import { ModelViewer } from './ModelViewer';
 
 // Local type to avoid conflict with AAS Blob type
 interface PreviewFileData {
@@ -108,6 +109,14 @@ export function FilePreview({ file, onClose }: FilePreviewProps) {
           );
         }
         return <pre className="preview-text">{textContent}</pre>;
+
+      case '3d-model':
+        return (
+          <ModelViewer
+            blobUrl={file.blobUrl}
+            filename={file.fileName}
+          />
+        );
 
       case 'unsupported':
       default:

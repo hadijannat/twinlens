@@ -129,6 +129,10 @@ function getContentType(path: string): string {
     html: 'text/html',
     stp: 'application/step',
     step: 'application/step',
+    gltf: 'model/gltf+json',
+    glb: 'model/gltf-binary',
+    obj: 'model/obj',
+    stl: 'model/stl',
   };
   return mimeTypes[ext ?? ''] ?? 'application/octet-stream';
 }

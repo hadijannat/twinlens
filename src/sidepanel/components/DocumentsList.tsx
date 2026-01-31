@@ -14,6 +14,7 @@ import {
   Eye,
   Loader2,
   AlertCircle,
+  Box,
 } from 'lucide-react';
 import type { SupplementaryFile } from '@shared/types';
 import type { PreviewableType } from '@shared/types';
@@ -66,6 +67,14 @@ function getFileIcon(contentType: string) {
   }
   if (contentType.includes('zip') || contentType.includes('aasx')) {
     return <Archive size={16} />;
+  }
+  if (
+    contentType.includes('gltf') ||
+    contentType.includes('glb') ||
+    contentType.includes('obj') ||
+    contentType.includes('stl')
+  ) {
+    return <Box size={16} />;
   }
   return <File size={16} />;
 }

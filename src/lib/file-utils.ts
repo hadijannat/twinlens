@@ -24,12 +24,29 @@ const TEXT_TYPES = [
 
 const PDF_TYPES = ['application/pdf'];
 
+const SAFE_3D_TYPES = [
+  'model/gltf-binary', // .glb
+  'model/gltf+json', // .gltf
+];
+
 // Content types that could contain scripts and must be blocked from preview
 const UNSAFE_TYPES = [
   'image/svg+xml',
   'text/html',
   'application/xhtml+xml',
 ];
+
+/**
+ * Check if content type is a 3D model format
+ */
+export function is3dModel(contentType: string): boolean {
+  const normalized = contentType.toLowerCase();
+  return (
+    SAFE_3D_TYPES.some((type) => normalized.includes(type)) ||
+    normalized.includes('gltf') ||
+    normalized.includes('glb')
+  );
+}
 
 /**
  * Determine the preview type for a given content type
@@ -51,6 +68,10 @@ export function getPreviewType(contentType: string): PreviewableType {
 
   if (TEXT_TYPES.some((t) => normalized.includes(t))) {
     return 'text';
+  }
+
+  if (is3dModel(normalized)) {
+    return '3d-model';
   }
 
   return 'unsupported';

@@ -473,7 +473,7 @@ export interface ExtractWorkerResponse {
   error?: string;
 }
 
-export type PreviewableType = 'image' | 'pdf' | 'text' | 'unsupported';
+export type PreviewableType = 'image' | 'pdf' | 'text' | '3d-model' | 'unsupported';
 
 // ============================================================================
 // QR Scanner Types
