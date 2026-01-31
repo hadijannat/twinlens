@@ -6,7 +6,7 @@
 import type { AIClient } from './client';
 import type { AISettings, AIResponse, AssetContext, ChatMessage } from './types';
 import { buildSystemPrompt } from './prompts';
-import { guardedFetch } from '../network-guard';
+import { fetchWithPermission } from '../permissions';
 
 interface AnthropicMessage {
   role: 'user' | 'assistant';
@@ -29,15 +29,18 @@ export class AnthropicClient implements AIClient {
     if (!this.isConfigured()) return false;
 
     try {
-      const response = await guardedFetch(`${this.baseUrl}/messages`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({
-          model: this.settings.model || 'claude-sonnet-4-20250514',
-          max_tokens: 10,
-          messages: [{ role: 'user', content: 'Hi' }],
-        }),
-      });
+      const response = await fetchWithPermission(
+        `${this.baseUrl}/messages`,
+        {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({
+            model: this.settings.model || 'claude-sonnet-4-20250514',
+            max_tokens: 10,
+            messages: [{ role: 'user', content: 'Hi' }],
+          }),
+        }
+      );
       return response.ok;
     } catch {
       return false;
@@ -56,17 +59,20 @@ export class AnthropicClient implements AIClient {
     const systemPrompt = buildSystemPrompt(context);
     const anthropicMessages = this.convertMessages(messages);
 
-    const response = await guardedFetch(`${this.baseUrl}/messages`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
-        model: this.settings.model || 'claude-sonnet-4-20250514',
-        max_tokens: this.settings.maxTokens || 1024,
-        system: systemPrompt,
-        messages: anthropicMessages,
-        stream: Boolean(onStream),
-      }),
-    });
+    const response = await fetchWithPermission(
+      `${this.baseUrl}/messages`,
+      {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          model: this.settings.model || 'claude-sonnet-4-20250514',
+          max_tokens: this.settings.maxTokens || 1024,
+          system: systemPrompt,
+          messages: anthropicMessages,
+          stream: Boolean(onStream),
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();

@@ -387,6 +387,7 @@ export default function App() {
 
           {/* API Key (conditional) */}
           {preset?.requiresApiKey && (
+            <>
             <SettingRow
               label="API Key"
               description={
@@ -414,6 +415,10 @@ export default function App() {
                 </button>
               </div>
             </SettingRow>
+            <p className="options-hint">
+              Permission to connect will be requested when you first use chat.
+            </p>
+            </>
           )}
 
           {/* Base URL (for providers that support it) */}

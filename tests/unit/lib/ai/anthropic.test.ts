@@ -7,13 +7,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AnthropicClient } from '../../../../src/lib/ai/anthropic';
 import type { AISettings, AssetContext, ChatMessage } from '../../../../src/lib/ai/types';
 
-// Mock guardedFetch to avoid actual network calls
-vi.mock('../../../../src/lib/network-guard', () => ({
-  guardedFetch: vi.fn(),
+// Mock fetchWithPermission to avoid actual network calls
+vi.mock('../../../../src/lib/permissions', () => ({
+  fetchWithPermission: vi.fn(),
 }));
 
-import { guardedFetch } from '../../../../src/lib/network-guard';
-const mockedFetch = vi.mocked(guardedFetch);
+import { fetchWithPermission } from '../../../../src/lib/permissions';
+const mockedFetch = vi.mocked(fetchWithPermission);
 
 describe('AnthropicClient', () => {
   const mockSettings: AISettings = {

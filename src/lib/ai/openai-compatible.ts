@@ -7,7 +7,7 @@ import type { AISettings, AIResponse, AssetContext, ChatMessage } from './types'
 import type { AIClient } from './client';
 import { getEffectiveBaseUrl, getEffectiveModel } from './settings';
 import { formatContextForPrompt } from './context';
-import { guardedFetch } from '../network-guard';
+import { fetchWithPermission } from '../permissions';
 import { sanitizeHeaders } from './header-sanitizer';
 
 interface OpenAIMessage {
@@ -101,7 +101,7 @@ export class OpenAICompatibleClient implements AIClient {
     headers: Record<string, string>,
     body: object
   ): Promise<AIResponse> {
-    const response = await guardedFetch(endpoint, {
+    const response = await fetchWithPermission(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
@@ -132,7 +132,7 @@ export class OpenAICompatibleClient implements AIClient {
     body: object,
     onStream: (chunk: string) => void
   ): Promise<AIResponse> {
-    const response = await guardedFetch(endpoint, {
+    const response = await fetchWithPermission(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
@@ -214,15 +214,18 @@ export class OpenAICompatibleClient implements AIClient {
       const safeExtraHeaders = sanitizeHeaders(this.settings.extraHeaders);
       Object.assign(headers, safeExtraHeaders);
 
-      const response = await guardedFetch(`${this.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          model: this.model,
-          messages: [{ role: 'user', content: 'Hi' }],
-          max_tokens: 5,
-        }),
-      });
+      const response = await fetchWithPermission(
+        `${this.baseUrl}/chat/completions`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            model: this.model,
+            messages: [{ role: 'user', content: 'Hi' }],
+            max_tokens: 5,
+          }),
+        }
+      );
 
       return response.ok;
     } catch {

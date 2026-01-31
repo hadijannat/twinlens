@@ -521,6 +521,14 @@ body {
   color: #92400e;
 }
 
+/* Hint */
+.options-hint {
+  font-size: 0.75rem;
+  color: var(--color-gray-500);
+  margin: calc(-1 * var(--spacing-2)) 0 0 0;
+  padding: 0 var(--spacing-3);
+}
+
 /* Footer */
 .options-footer {
   margin-top: var(--spacing-6);

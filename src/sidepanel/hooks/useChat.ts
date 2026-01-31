@@ -110,8 +110,11 @@ export function useChat(environment: AASEnvironment | null): UseChatResult {
           )
         );
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'An error occurred';
+        const rawMessage = err instanceof Error ? err.message : 'An error occurred';
+        // Provide user-friendly message for permission errors
+        const errorMessage = rawMessage.includes('Permission denied')
+          ? 'Permission required to connect to AI service. Please allow access when prompted and try again.'
+          : rawMessage;
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantMsg.id
