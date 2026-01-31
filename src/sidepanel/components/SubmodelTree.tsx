@@ -23,6 +23,8 @@ import type { Submodel, SubmodelElement } from '@shared/types';
 import { detectTemplate, TemplateType } from '@lib/templates/detector';
 import { NameplateView } from './templates/NameplateView';
 import { CarbonFootprintView } from './templates/CarbonFootprintView';
+import { TechnicalDataView } from './templates/TechnicalDataView';
+import { HandoverDocsView } from './templates/HandoverDocsView';
 
 interface SubmodelTreeProps {
   submodels: Submodel[];
@@ -180,6 +182,8 @@ function SubmodelElementNode({ element }: { element: SubmodelElement }) {
 const SUPPORTED_TEMPLATES = new Set([
   TemplateType.NAMEPLATE,
   TemplateType.CARBON_FOOTPRINT,
+  TemplateType.TECHNICAL_DATA,
+  TemplateType.HANDOVER_DOCUMENTATION,
 ]);
 
 function hasRenderer(type: TemplateType): boolean {
@@ -192,6 +196,10 @@ function renderTemplateView(type: TemplateType, submodel: Submodel): React.React
       return <NameplateView submodel={submodel} />;
     case TemplateType.CARBON_FOOTPRINT:
       return <CarbonFootprintView submodel={submodel} />;
+    case TemplateType.TECHNICAL_DATA:
+      return <TechnicalDataView submodel={submodel} />;
+    case TemplateType.HANDOVER_DOCUMENTATION:
+      return <HandoverDocsView submodel={submodel} />;
     default:
       return null;
   }

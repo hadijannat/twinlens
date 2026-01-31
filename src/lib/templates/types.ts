@@ -77,6 +77,76 @@ export interface AddressInfo {
 }
 
 /**
+ * Technical Data item from IDTA 02003 template
+ */
+export interface TechnicalDataItem {
+  idShort: string;
+  label?: string;
+  value: string;
+  unit?: string;
+  semanticId?: string;
+}
+
+/**
+ * Technical Data from IDTA 02003 Generic Frame for Technical Data
+ */
+export interface TechnicalDataData {
+  generalInformation?: {
+    manufacturerName?: string;
+    manufacturerProductDesignation?: string;
+    manufacturerOrderCode?: string;
+    manufacturerProductRoot?: string;
+    manufacturerProductFamily?: string;
+  };
+  productClassifications?: {
+    system: string;
+    classId: string;
+    version?: string;
+  }[];
+  technicalProperties?: TechnicalDataItem[];
+  furtherInformation?: {
+    textStatements?: string[];
+    validDate?: string;
+  };
+}
+
+/**
+ * Document classification per VDI 2770
+ */
+export type DocumentClass =
+  | 'Identification'
+  | 'TechnicalSpecification'
+  | 'Drawing'
+  | 'Manual'
+  | 'Certificate'
+  | 'Contract'
+  | 'Other';
+
+/**
+ * Single document from Handover Documentation
+ */
+export interface DocumentItem {
+  documentId: string;
+  documentClass: DocumentClass | string;
+  documentClassId?: string;
+  documentVersion?: string;
+  title?: string;
+  subTitle?: string;
+  language?: string;
+  digitalFile?: string;
+  mimeType?: string;
+  previewImage?: string;
+}
+
+/**
+ * Handover Documentation from IDTA 02004 / VDI 2770
+ */
+export interface HandoverDocsData {
+  documents: DocumentItem[];
+  numberOfDocuments?: number;
+}
+
+/**
  * Multi-language text helper
  */
 export function getPreferredText(

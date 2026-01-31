@@ -85,10 +85,12 @@ export function Dropzone({ onFileSelect }: DropzoneProps) {
         style={{ display: 'none' }}
         aria-label="Select AASX file"
       />
-      <Upload size={48} className="dropzone-icon" />
+      <div className="dropzone-icon">
+        <Upload size={32} />
+      </div>
       <div className="dropzone-text">
-        <p>Drop an AASX file here</p>
-        <span>or click to browse</span>
+        <p className="dropzone-title">Drop an AASX file here</p>
+        <p className="dropzone-subtitle">or click to browse</p>
       </div>
     </div>
   );

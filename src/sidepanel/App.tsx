@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Eye } from 'lucide-react';
 import { Dropzone } from './components/Dropzone';
 import { AssetIdentity } from './components/AssetIdentity';
@@ -13,15 +13,20 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ExportMenu } from './components/ExportMenu';
 import { CompareCart } from './components/CompareCart';
 import { CompareView } from './components/CompareView';
+import { RegistryBrowser } from './components/RegistryBrowser';
+import { RegistryConnector } from './components/RegistryConnector';
 import { useAASXParser } from './hooks/useAASXParser';
 import { compareStore } from '@lib/compare/store';
 import type { PendingQRImage } from '@shared/types';
+import type { RegistryConfig, ShellDescriptor } from '@lib/registry/types';
+import { createRegistryClient } from '@lib/registry/client';
 
-type TabId = 'overview' | 'submodels' | 'documents' | 'compliance' | 'raw' | 'compare';
+type TabId = 'overview' | 'submodels' | 'documents' | 'compliance' | 'raw' | 'compare' | 'registry';
 
 interface Tab {
   id: TabId;
   label: string;
+  alwaysShow?: boolean;
 }
 
 const TABS: Tab[] = [
@@ -31,6 +36,7 @@ const TABS: Tab[] = [
   { id: 'compliance', label: 'Compliance' },
   { id: 'raw', label: 'Raw JSON' },
   { id: 'compare', label: 'Compare' },
+  { id: 'registry', label: 'Registry', alwaysShow: true },
 ];
 
 function getFileNameFromUrl(url: string): string {
@@ -49,6 +55,8 @@ export default function App() {
   const [showPageFindings, setShowPageFindings] = useState(false);
   const [compareMode, setCompareMode] = useState<'cart' | 'view'>('cart');
   const [isPinned, setIsPinned] = useState(false);
+  const [registryConfig, setRegistryConfig] = useState<RegistryConfig | null>(null);
+  const [showRegistryConnector, setShowRegistryConnector] = useState(false);
   const { state, parseFile, parseArrayBuffer, setError, reset } = useAASXParser();
 
   const handleFileSelect = (file: File) => {
@@ -126,6 +134,26 @@ export default function App() {
       console.error('Failed to pin item:', err);
     }
   };
+
+  const handleRegistryShellSelect = useCallback(async (shell: ShellDescriptor) => {
+    if (!registryConfig) return;
+
+    try {
+      const client = createRegistryClient(registryConfig);
+      const environment = await client.getShellEnvironment(shell.id);
+
+      // Parse the environment as if it were loaded from a file
+      const jsonStr = JSON.stringify(environment);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const file = new File([blob], `${shell.idShort || shell.id}.json`, { type: 'application/json' });
+
+      parseFile(file);
+      setActiveTab('overview');
+    } catch (err) {
+      console.error('Failed to load shell from registry:', err);
+      setError(`Failed to load shell: ${(err as Error).message}`);
+    }
+  }, [registryConfig, parseFile, setError]);
 
   // Check if already pinned when loading
   useEffect(() => {
@@ -209,6 +237,19 @@ export default function App() {
   }, []);
 
   const renderContent = () => {
+    // Registry tab is always available
+    if (activeTab === 'registry') {
+      return (
+        <ErrorBoundary>
+          <RegistryBrowser
+            config={registryConfig}
+            onConnect={() => setShowRegistryConnector(true)}
+            onSelectShell={handleRegistryShellSelect}
+          />
+        </ErrorBoundary>
+      );
+    }
+
     if (state.status === 'idle') {
       return (
         <>
@@ -318,7 +359,8 @@ export default function App() {
     }
   };
 
-  const showTabs = state.status === 'success';
+  const hasFile = state.status === 'success';
+  const visibleTabs = TABS.filter(tab => tab.alwaysShow || hasFile);
 
   return (
     <div className="app">
@@ -370,9 +412,9 @@ export default function App() {
         )}
       </header>
 
-      {showTabs && (
+      {visibleTabs.length > 0 && (
         <nav className="tabs">
-          {TABS.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab.id}
               className={`tab ${activeTab === tab.id ? 'active' : ''}`}
@@ -400,6 +442,17 @@ export default function App() {
         )}
         {renderContent()}
       </main>
+
+      <RegistryConnector
+        isOpen={showRegistryConnector}
+        currentConfig={registryConfig}
+        onClose={() => setShowRegistryConnector(false)}
+        onSave={setRegistryConfig}
+        onDisconnect={() => {
+          setRegistryConfig(null);
+          setShowRegistryConnector(false);
+        }}
+      />
     </div>
   );
 }
