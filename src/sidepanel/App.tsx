@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Eye } from 'lucide-react';
 import { Dropzone } from './components/Dropzone';
 import { AssetIdentity } from './components/AssetIdentity';
 import { SubmodelTree } from './components/SubmodelTree';
@@ -461,11 +460,9 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <Eye size={24} color="var(--color-primary)" aria-hidden="true" />
-        <h1>TwinLens</h1>
-        {state.status === 'success' && (
-          <>
+      {state.status === 'success' && (
+        <header className="app-toolbar" aria-label="File actions">
+          <div className="app-toolbar-actions">
             <ExportMenu
               environment={state.result.environment}
               aasxData={state.aasxData}
@@ -476,41 +473,25 @@ export default function App() {
               <button
                 onClick={handlePin}
                 aria-label="Pin current asset to compare cart"
-                style={{
-                  padding: '0.25rem 0.5rem',
-                  fontSize: '0.75rem',
-                  background: 'var(--color-gray-100)',
-                  color: 'var(--color-gray-600)',
-                  border: '1px solid var(--color-gray-200)',
-                  borderRadius: 'var(--radius-sm)',
-                  cursor: 'pointer',
-                }}
+                className="app-toolbar-button"
               >
                 Pin to Compare
               </button>
             ) : (
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }} aria-live="polite">
+              <span className="app-toolbar-status" aria-live="polite">
                 Pinned
               </span>
             )}
             <button
               onClick={reset}
               aria-label="Close current file and open a new one"
-              style={{
-                padding: '0.25rem 0.5rem',
-                fontSize: '0.75rem',
-                background: 'var(--color-gray-100)',
-                color: 'var(--color-gray-600)',
-                border: '1px solid var(--color-gray-200)',
-                borderRadius: 'var(--radius-sm)',
-                cursor: 'pointer',
-              }}
+              className="app-toolbar-button"
             >
               Open New File
             </button>
-          </>
-        )}
-      </header>
+          </div>
+        </header>
+      )}
 
       {visibleTabs.length > 0 && (
         <nav className="tabs" role="tablist" aria-label="Asset views">
