@@ -1,0 +1,1 @@
+const s=5242880,a="http://admin-shell.io/aasx/relationships/aasx-origin",i="http://admin-shell.io/aasx/relationships/aas-spec",t="http://admin-shell.io/aasx/relationships/aas-suppl";export{a as A,s as M,i as a,t as b};
