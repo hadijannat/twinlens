@@ -1,88 +1,70 @@
 # TwinLens Privacy Policy
 
-**Last updated:** January 31, 2025
+Effective date: January 31, 2026
 
-## Overview
+TwinLens is a privacy‑first Chrome extension for viewing and validating
+Asset Administration Shell (AASX) and AAS JSON files. This policy explains
+what data TwinLens handles, when it is used, and your choices.
 
-TwinLens is a privacy-first Chrome extension for viewing Asset Administration Shell (AASX) files and Digital Product Passports. We are committed to protecting your privacy and being transparent about our data practices.
+## Summary
+- TwinLens processes files and page data locally by default.
+- We do not operate our own servers for data collection.
+- Data is sent to third parties only when you explicitly enable optional
+  features (for example, AI providers or remote registry lookups).
 
-**Key principle:** All data processing occurs locally in your browser. Your files never leave your device.
+## Data We Process
+TwinLens may access the following data types depending on how you use it:
 
-## Data We Collect
+- **Website content and resources**: When page scanning is enabled, TwinLens
+  analyzes page content such as JSON‑LD, links, and meta tags to detect AAS/DPP
+  indicators.
+- **Web history (URLs)**: The current page URL is used to identify AAS/DPP
+  patterns and show scan results in the side panel.
+- **User‑provided files**: AASX/JSON files you load into the extension.
+- **Settings and preferences**: Stored locally in Chrome storage to remember
+  your configuration (for example, validation mode, compare list, AI settings).
+- **Authentication information** (optional): If you enable AI features and
+  enter an API key, it is stored locally in Chrome storage.
+- **Personal communications** (optional): If you use AI chat features, your
+  prompts and extracted summaries are sent to the AI provider you select.
 
-### AASX Files
-- **Processing:** Files are parsed and displayed entirely within your browser
-- **Storage:** Files are not uploaded to any external server
-- **Persistence:** File data is only kept in memory during your session
+## How We Use Data
+- To parse and display AASX/JSON files in the side panel.
+- To validate content and show compliance findings.
+- To scan the current page for AAS/DPP indicators when requested.
+- To remember your settings and compare items.
+- To send data to AI providers **only** when you explicitly enable AI features.
 
-### Local Settings
-- **API Keys:** If you choose to use AI features, your API keys are stored locally in `chrome.storage.local`
-- **Preferences:** User preferences (theme, display options) are stored locally
-- **Compare Cart:** Assets saved for comparison are stored in IndexedDB within your browser
+## Data Sharing
+TwinLens does **not** sell your data.
 
-### What We Do NOT Collect
-- We do not collect analytics or usage data
-- We do not track your browsing activity
-- We do not collect personal information
-- We do not collect or transmit AASX file contents
+Data is shared only in these cases:
+- **AI Providers (optional)**: If enabled, relevant content and prompts are
+  sent to the provider you choose (e.g., OpenAI, Anthropic, or OpenRouter).
+- **Remote URLs (user‑initiated)**: If you open AASX/JSON or registry links,
+  TwinLens will fetch those resources to display them.
 
-## Third-Party Services
+These third parties handle data according to their own privacy policies.
 
-TwinLens offers optional AI-powered features that require you to provide your own API keys for:
+## Data Storage & Retention
+- Settings and scan results are stored **locally** in Chrome storage.
+- We do not maintain a server‑side database of user data.
+- You can clear extension data at any time via Chrome’s extension settings.
 
-### Anthropic Claude API
-- When configured, your questions and asset context are sent to Anthropic's API
-- Subject to [Anthropic's Privacy Policy](https://www.anthropic.com/privacy)
+## Your Choices
+- Use TwinLens entirely offline by not enabling AI or remote lookups.
+- Disable page scanning in settings if you do not want website content analyzed.
+- Remove stored settings by clearing extension data.
 
-### OpenAI API
-- When configured, your questions and asset context are sent to OpenAI's API
-- Subject to [OpenAI's Privacy Policy](https://openai.com/privacy)
-
-### OpenRouter API
-- When configured, your questions are routed through OpenRouter
-- Subject to [OpenRouter's Privacy Policy](https://openrouter.ai/privacy)
-
-**Important:** These services are entirely optional. TwinLens works fully without any AI configuration.
-
-## AAS Registry Connections
-
-When you connect to an AAS Registry:
-- Connection details are stored locally in your browser
-- Queries are sent directly from your browser to the registry server
-- No data passes through our servers
-
-## Data Security
-
-- All data processing occurs locally in your browser
-- API keys are stored encrypted in Chrome's secure storage
-- No data is transmitted to servers we control
-- No cookies are used by TwinLens itself
-
-## Permissions Explained
-
-| Permission | Purpose |
-|------------|---------|
-| `sidePanel` | Displays TwinLens as a Chrome side panel |
-| `storage` | Stores settings and compare cart locally |
-| `contextMenus` | Adds "Open with TwinLens" right-click options |
-
-## Children's Privacy
-
-TwinLens is a technical tool for viewing industrial asset data and is not directed at children under 13.
-
-## Changes to This Policy
-
-We may update this privacy policy from time to time. We will notify users of any material changes by updating the "Last updated" date.
-
-## Open Source
-
-TwinLens is open source. You can review our code at:
-https://github.com/YOUR_USERNAME/twinlens
+## Security
+We use Chrome’s extension storage APIs and standard browser security to protect
+locally stored data. No method is 100% secure, but we minimize data collection
+and keep processing local by default.
 
 ## Contact
+If you have questions or requests, please open an issue at:
+https://github.com/hadijannat/twinlens/issues
 
-If you have questions about this privacy policy or TwinLens's data practices, please open an issue on our GitHub repository.
-
----
-
-**Summary:** Your data stays on your device. AI features are optional and use your own API keys. We don't collect, store, or transmit your data.
+## Changes
+We may update this policy as the extension evolves. The effective date above
+will be updated when changes are made.
