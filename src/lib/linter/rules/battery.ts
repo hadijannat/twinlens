@@ -6,6 +6,7 @@
 
 import type { RulePack, LintRule, LintContext } from '../types';
 import type { SubmodelElement, Property, MultiLanguageProperty } from '@shared/types';
+import { registerRulePack } from '../registry';
 
 // Semantic ID patterns for battery-related submodels
 const BATTERY_PASSPORT_SEMANTIC_IDS = [
@@ -594,3 +595,6 @@ export const batteryPassportRules: RulePack = {
     dismantlingInfoRule,
   ],
 };
+
+// Auto-register with the registry
+registerRulePack(batteryPassportRules);

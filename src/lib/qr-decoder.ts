@@ -1,13 +1,17 @@
 /**
  * QR Code Decoder
- * Decodes QR codes and DataMatrix from image data using native BarcodeDetector API
+ * Decodes QR codes using native BarcodeDetector API with jsQR fallback
  */
+
+import jsQR from 'jsqr';
 
 export interface DecodeResult {
   success: boolean;
   data?: string;
   format?: string;
   error?: string;
+  /** Which decoder was used */
+  decoder?: 'native' | 'jsqr';
 }
 
 // Check if BarcodeDetector is available (Chrome 83+)
@@ -31,33 +35,21 @@ declare global {
 }
 
 /**
- * Check if the BarcodeDetector API is available
+ * Check if the native BarcodeDetector API is available
  */
 export function isBarcodeDetectorSupported(): boolean {
   return typeof window !== 'undefined' && 'BarcodeDetector' in window;
 }
 
 /**
- * Decode a QR code from a Blob using native BarcodeDetector
+ * Decode using native BarcodeDetector API
  */
-export async function decodeQRFromBlob(blob: Blob): Promise<DecodeResult> {
-  if (!isBarcodeDetectorSupported()) {
-    return {
-      success: false,
-      error: 'QR code scanning is not supported in this browser',
-    };
-  }
-
+async function decodeWithNative(imageBitmap: ImageBitmap): Promise<DecodeResult> {
   try {
-    // Create ImageBitmap from blob
-    const imageBitmap = await createImageBitmap(blob);
-
-    // Create BarcodeDetector with QR code support
     const detector = new BarcodeDetector({
       formats: ['qr_code', 'data_matrix', 'aztec'],
     });
 
-    // Detect barcodes in the image
     const barcodes = await detector.detect(imageBitmap);
 
     if (barcodes.length === 0) {
@@ -67,7 +59,6 @@ export async function decodeQRFromBlob(blob: Blob): Promise<DecodeResult> {
       };
     }
 
-    // Return the first barcode found
     const barcode = barcodes[0];
     if (!barcode) {
       return {
@@ -80,7 +71,86 @@ export async function decodeQRFromBlob(blob: Blob): Promise<DecodeResult> {
       success: true,
       data: barcode.rawValue,
       format: barcode.format,
+      decoder: 'native',
     };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Native decoder failed';
+    return {
+      success: false,
+      error: message,
+    };
+  }
+}
+
+/**
+ * Decode using jsQR fallback (works in all browsers)
+ */
+async function decodeWithJsQR(imageBitmap: ImageBitmap): Promise<DecodeResult> {
+  try {
+    // Draw ImageBitmap to canvas to get ImageData
+    const canvas = new OffscreenCanvas(imageBitmap.width, imageBitmap.height);
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      return {
+        success: false,
+        error: 'Failed to create canvas context',
+      };
+    }
+
+    ctx.drawImage(imageBitmap, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    // Decode with jsQR
+    const result = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: 'attemptBoth',
+    });
+
+    if (!result) {
+      return {
+        success: false,
+        error: 'No QR code found in image',
+      };
+    }
+
+    return {
+      success: true,
+      data: result.data,
+      format: 'qr_code',
+      decoder: 'jsqr',
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'jsQR decoder failed';
+    return {
+      success: false,
+      error: message,
+    };
+  }
+}
+
+/**
+ * Decode a QR code from a Blob
+ * Uses native BarcodeDetector when available, falls back to jsQR
+ */
+export async function decodeQRFromBlob(blob: Blob): Promise<DecodeResult> {
+  try {
+    // Create ImageBitmap from blob
+    const imageBitmap = await createImageBitmap(blob);
+
+    // Try native BarcodeDetector first (faster, supports more formats)
+    if (isBarcodeDetectorSupported()) {
+      const nativeResult = await decodeWithNative(imageBitmap);
+      if (nativeResult.success) {
+        return nativeResult;
+      }
+      // Native failed, try jsQR as backup (might find QR codes native missed)
+    }
+
+    // Fall back to jsQR (QR codes only, but works everywhere)
+    const jsqrResult = await decodeWithJsQR(imageBitmap);
+    return jsqrResult;
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Failed to decode QR code';

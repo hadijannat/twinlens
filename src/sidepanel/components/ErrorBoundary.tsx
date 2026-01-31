@@ -1,14 +1,16 @@
 /**
  * ErrorBoundary Component
  * Catches React errors to prevent entire app from crashing
+ * Includes retry functionality
  */
 
 import { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  onRetry?: () => void;
 }
 
 interface State {
@@ -30,6 +32,13 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 
+  handleRetry = () => {
+    this.setState({ hasError: false, error: undefined });
+    if (this.props.onRetry) {
+      this.props.onRetry();
+    }
+  };
+
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
@@ -37,26 +46,23 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="card" style={{ background: '#fef2f2', borderColor: '#fecaca' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <AlertTriangle size={16} color="var(--color-error)" />
-            <strong style={{ color: 'var(--color-error)' }}>Display Error</strong>
+        <div className="error-boundary-fallback">
+          <div className="error-boundary-icon">
+            <AlertTriangle size={24} />
           </div>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)' }}>
+          <h3 className="error-boundary-title">Something went wrong</h3>
+          <p className="error-boundary-message">
             Unable to display this content. The data format may be incompatible.
           </p>
           {this.state.error && (
-            <pre style={{
-              marginTop: '0.5rem',
-              padding: '0.5rem',
-              fontSize: '0.75rem',
-              background: 'white',
-              borderRadius: '0.25rem',
-              overflow: 'auto',
-            }}>
+            <pre className="error-boundary-details">
               {this.state.error.message}
             </pre>
           )}
+          <button className="error-boundary-retry" onClick={this.handleRetry}>
+            <RefreshCw size={14} />
+            Try Again
+          </button>
         </div>
       );
     }

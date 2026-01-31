@@ -28,6 +28,20 @@ function copyManifestPlugin(): Plugin {
       } catch (err) {
         console.log('Note: Could not create sidepanel HTML:', err);
       }
+
+      // Copy options HTML to root level with fixed paths
+      try {
+        let html = readFileSync(
+          resolve(__dirname, 'dist/src/options/index.html'),
+          'utf-8'
+        );
+        // Fix asset paths from ../../assets/ to ./assets/
+        html = html.replace(/\.\.\/\.\.\/assets\//g, './assets/');
+        writeFileSync(resolve(__dirname, 'dist/options.html'), html);
+        console.log('Created options.html with fixed paths');
+      } catch (err) {
+        console.log('Note: Could not create options HTML:', err);
+      }
     },
   };
 }
@@ -48,6 +62,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         sidepanel: resolve(__dirname, 'src/sidepanel/index.html'),
+        options: resolve(__dirname, 'src/options/index.html'),
         'service-worker': resolve(__dirname, 'src/background/service-worker.ts'),
         'parse-worker': resolve(__dirname, 'src/workers/parse-worker.ts'),
         'extract-worker': resolve(__dirname, 'src/workers/extract-worker.ts'),

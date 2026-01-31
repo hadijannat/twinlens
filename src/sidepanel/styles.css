@@ -3033,3 +3033,152 @@ body {
 .form-hint a:hover {
   text-decoration: underline;
 }
+
+/* ============================================================================
+   Error Boundary Styles
+   ============================================================================ */
+
+.error-boundary-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-8);
+  text-align: center;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-lg);
+}
+
+.error-boundary-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 50%;
+  color: var(--color-error);
+  margin-bottom: var(--spacing-4);
+}
+
+.error-boundary-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-gray-900);
+  margin: 0 0 var(--spacing-2) 0;
+}
+
+.error-boundary-message {
+  font-size: 0.875rem;
+  color: var(--color-gray-600);
+  margin: 0 0 var(--spacing-3) 0;
+  max-width: 280px;
+}
+
+.error-boundary-details {
+  width: 100%;
+  max-width: 320px;
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  background: white;
+  border-radius: var(--radius-sm);
+  overflow: auto;
+  max-height: 100px;
+  text-align: left;
+  color: var(--color-gray-700);
+  margin: 0 0 var(--spacing-4) 0;
+}
+
+.error-boundary-retry {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: white;
+  color: var(--color-gray-700);
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.error-boundary-retry:hover {
+  background: var(--color-gray-50);
+  border-color: var(--color-gray-400);
+}
+
+/* ============================================================================
+   Enhanced Skeleton Loaders
+   ============================================================================ */
+
+.skeleton-tree {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.skeleton-tree-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2);
+}
+
+.skeleton-tree-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-tree-text {
+  height: 14px;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.skeleton-table-header {
+  display: flex;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--color-gray-100);
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-table-row {
+  display: flex;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-3);
+}
+
+.skeleton-table-cell {
+  height: 14px;
+  border-radius: var(--radius-sm);
+}
+
+/* Loading overlay for async operations */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.8);
+  z-index: 10;
+}
+
+.loading-overlay .spinner {
+  width: 32px;
+  height: 32px;
+}

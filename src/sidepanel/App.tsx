@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Eye } from 'lucide-react';
 import { Dropzone } from './components/Dropzone';
 import { AssetIdentity } from './components/AssetIdentity';
@@ -67,6 +67,67 @@ export default function App() {
   // Get environment for chat hook
   const environment = state.status === 'success' ? state.result.environment : null;
   const chat = useChat(environment);
+
+  // Ref for file input (for keyboard shortcut)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey;
+
+      // Escape - close modals
+      if (e.key === 'Escape') {
+        if (showAISettings) {
+          setShowAISettings(false);
+          e.preventDefault();
+        } else if (showRegistryConnector) {
+          setShowRegistryConnector(false);
+          e.preventDefault();
+        } else if (pendingQR) {
+          setPendingQR(null);
+          e.preventDefault();
+        } else if (showPageFindings) {
+          setShowPageFindings(false);
+          e.preventDefault();
+        }
+        return;
+      }
+
+      if (!isMod) return;
+
+      // Ctrl/Cmd + O - Open file picker
+      if (e.key === 'o') {
+        e.preventDefault();
+        fileInputRef.current?.click();
+        return;
+      }
+
+      // Ctrl/Cmd + , - Open options page
+      if (e.key === ',') {
+        e.preventDefault();
+        if (chrome?.runtime?.openOptionsPage) {
+          chrome.runtime.openOptionsPage();
+        }
+        return;
+      }
+
+      // Ctrl/Cmd + 1-8 - Switch tabs
+      const num = parseInt(e.key, 10);
+      if (num >= 1 && num <= 8) {
+        e.preventDefault();
+        const hasFile = state.status === 'success';
+        const visibleTabs = TABS.filter(tab => tab.alwaysShow || hasFile);
+        const targetTab = visibleTabs[num - 1];
+        if (targetTab) {
+          setActiveTab(targetTab.id);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showAISettings, showRegistryConnector, pendingQR, showPageFindings, state.status]);
 
   const handleFileSelect = (file: File) => {
     parseFile(file);
@@ -484,6 +545,21 @@ export default function App() {
         settings={chat.settings}
         onClose={() => setShowAISettings(false)}
         onSave={chat.updateSettings}
+      />
+
+      {/* Hidden file input for keyboard shortcut */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".aasx,.json"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            handleFileSelect(file);
+          }
+          e.target.value = '';
+        }}
       />
     </div>
   );
