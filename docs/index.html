@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TwinLens - Digital Product Passport Viewer</title>
+  <meta name="description" content="Privacy-first Chrome extension for viewing Asset Administration Shell (AASX) files and Digital Product Passports.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #1d4ed8;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-500: #6b7280;
+      --gray-700: #374151;
+      --gray-900: #111827;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: var(--gray-900);
+      background: var(--gray-50);
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Header */
+    header {
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.25rem;
+    }
+
+    nav {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    nav a {
+      color: var(--gray-700);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    nav a:hover {
+      color: var(--primary);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 4rem 0 3rem;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: 2.75rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--gray-900), var(--primary-dark));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--gray-500);
+      max-width: 600px;
+      margin: 0 auto 2rem;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.875rem 1.75rem;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--gray-700);
+      border: 1px solid var(--gray-200);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Screenshots */
+    .screenshots {
+      padding: 2rem 0 4rem;
+    }
+
+    .screenshot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .screenshot {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .screenshot:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.15);
+    }
+
+    .screenshot img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .screenshot-caption {
+      padding: 1rem;
+      font-size: 0.875rem;
+      color: var(--gray-500);
+      text-align: center;
+    }
+
+    /* Features */
+    .features {
+      padding: 4rem 0;
+      background: white;
+    }
+
+    .features h2 {
+      font-size: 2rem;
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+    }
+
+    .feature {
+      padding: 1.5rem;
+      background: var(--gray-50);
+      border-radius: 12px;
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature h3 {
+      font-size: 1.125rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature p {
+      color: var(--gray-500);
+      font-size: 0.9375rem;
+    }
+
+    /* Standards */
+    .standards {
+      padding: 4rem 0;
+      text-align: center;
+    }
+
+    .standards h2 {
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .standards p {
+      color: var(--gray-500);
+      margin-bottom: 2rem;
+    }
+
+    .standard-badges {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .badge {
+      padding: 0.5rem 1rem;
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 20px;
+      font-size: 0.875rem;
+      color: var(--gray-700);
+    }
+
+    /* Footer */
+    footer {
+      padding: 3rem 0;
+      background: var(--gray-900);
+      color: var(--gray-500);
+      text-align: center;
+    }
+
+    footer a {
+      color: var(--gray-500);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      color: white;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .hero h1 {
+        font-size: 2rem;
+      }
+
+      nav {
+        display: none;
+      }
+
+      .cta-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container header-content">
+      <a href="#" class="logo">
+        <div class="logo-icon">🔍</div>
+        TwinLens
+      </a>
+      <nav>
+        <a href="#features">Features</a>
+        <a href="https://github.com/hadijannat/twinlens">GitHub</a>
+        <a href="PRIVACY.md">Privacy</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h1>Digital Product Passport Viewer</h1>
+        <p>Privacy-first Chrome extension for viewing Asset Administration Shell (AASX) files. Inspect, analyze, and chat with your digital twins.</p>
+        <div class="cta-buttons">
+          <a href="https://github.com/hadijannat/twinlens/releases" class="btn btn-primary">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download Extension
+          </a>
+          <a href="https://github.com/hadijannat/twinlens" class="btn btn-secondary">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            View Source
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="screenshots">
+      <div class="container">
+        <div class="screenshot-grid">
+          <div class="screenshot">
+            <img src="store-assets/store-screens/twinlens-screenshot-01.jpg" alt="TwinLens Overview Tab" loading="lazy">
+            <div class="screenshot-caption">Asset Overview with Digital Nameplate</div>
+          </div>
+          <div class="screenshot">
+            <img src="store-assets/store-screens/twinlens-screenshot-02.jpg" alt="TwinLens Submodels" loading="lazy">
+            <div class="screenshot-caption">Explore Submodels & Properties</div>
+          </div>
+          <div class="screenshot">
+            <img src="store-assets/store-screens/twinlens-screenshot-03.jpg" alt="TwinLens Compliance" loading="lazy">
+            <div class="screenshot-caption">EU Battery Regulation Compliance</div>
+          </div>
+          <div class="screenshot">
+            <img src="store-assets/store-screens/twinlens-screenshot-04.jpg" alt="TwinLens Compare" loading="lazy">
+            <div class="screenshot-caption">Compare Multiple Assets</div>
+          </div>
+          <div class="screenshot">
+            <img src="store-assets/store-screens/twinlens-screenshot-05.jpg" alt="TwinLens AI Chat" loading="lazy">
+            <div class="screenshot-caption">Chat with AI About Your Assets</div>
+          </div>
+          <div class="screenshot">
+            <img src="store-assets/store-screens/twinlens-screenshot-06.jpg" alt="TwinLens Registry" loading="lazy">
+            <div class="screenshot-caption">Connect to AAS Registries</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="features" id="features">
+      <div class="container">
+        <h2>Features</h2>
+        <div class="feature-grid">
+          <div class="feature">
+            <div class="feature-icon">📦</div>
+            <h3>Open AASX Files</h3>
+            <p>Drag-and-drop AASX packages or open via right-click menu. Supports AAS v2.0 and v3.0 formats.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">🏷️</div>
+            <h3>Digital Nameplate</h3>
+            <p>View manufacturer info, serial numbers, and product specifications in IDTA-standard format.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">🌱</div>
+            <h3>Carbon Footprint</h3>
+            <p>Inspect PCF data including CO2 emissions, lifecycle stages, and sustainability metrics.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">✅</div>
+            <h3>Compliance Checking</h3>
+            <p>Validate against EU Battery Regulation (2023/1542) with 11 built-in compliance rules.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">🤖</div>
+            <h3>AI Assistant</h3>
+            <p>Chat with Claude, GPT-4, or local models about your assets. Uses your own API keys.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">📊</div>
+            <h3>Compare Assets</h3>
+            <p>Add up to 10 assets to your compare cart and view side-by-side differences.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">🔐</div>
+            <h3>Privacy First</h3>
+            <p>All processing happens locally. No data uploaded. Optional features use your own keys.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">🌐</div>
+            <h3>Registry Support</h3>
+            <p>Connect to BaSyx-compatible AAS registries to browse and fetch remote assets.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="standards">
+      <div class="container">
+        <h2>Standards Compliance</h2>
+        <p>Built for Industry 4.0 interoperability</p>
+        <div class="standard-badges">
+          <span class="badge">IEC 63278 (AAS)</span>
+          <span class="badge">IDTA Submodel Templates</span>
+          <span class="badge">EU ESPR 2024/1781</span>
+          <span class="badge">EU Battery Reg 2023/1542</span>
+          <span class="badge">VDI 2770</span>
+          <span class="badge">Chrome MV3</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-links">
+        <a href="https://github.com/hadijannat/twinlens">GitHub</a>
+        <a href="https://github.com/hadijannat/twinlens/issues">Issues</a>
+        <a href="PRIVACY.md">Privacy Policy</a>
+        <a href="https://github.com/hadijannat/twinlens/releases">Releases</a>
+      </div>
+      <p>TwinLens v0.1.0 &mdash; Open Source under MIT License</p>
+    </div>
+  </footer>
+</body>
+</html>
