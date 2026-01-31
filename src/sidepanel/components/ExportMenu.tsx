@@ -4,10 +4,13 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { Download, Copy, FileJson, Package, Check, Save } from 'lucide-react';
+import { Download, Copy, FileJson, Package, Check, Save, FileText } from 'lucide-react';
 import type { AASEnvironment, SupplementaryFile } from '@shared/types';
 import { copyToClipboard, downloadArrayBuffer } from '@lib/file-utils';
 import { serializeToJson, buildAasx } from '@lib/aasx-serializer';
+import { generatePdfReport } from '@lib/pdf-export';
+import { normalizeEnvironment } from '@lib/normalized';
+import { executeLinter, getAllRulePacks } from '@lib/linter';
 
 interface ExportMenuProps {
   environment: AASEnvironment;
@@ -18,6 +21,7 @@ interface ExportMenuProps {
 
 type CopyStatus = 'idle' | 'success' | 'error';
 type SaveStatus = 'idle' | 'saving' | 'success' | 'error';
+type PdfStatus = 'idle' | 'generating' | 'success' | 'error';
 
 export function ExportMenu({
   environment,
@@ -28,6 +32,7 @@ export function ExportMenu({
   const [isOpen, setIsOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [pdfStatus, setPdfStatus] = useState<PdfStatus>('idle');
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu on outside click
@@ -60,6 +65,14 @@ export function ExportMenu({
     }
   }, [saveStatus]);
 
+  // Reset PDF status after delay
+  useEffect(() => {
+    if (pdfStatus === 'success' || pdfStatus === 'error') {
+      const timer = setTimeout(() => setPdfStatus('idle'), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [pdfStatus]);
+
   const handleCopyJson = async () => {
     // Use clean aas-core serialization
     const json = serializeToJson(environment, true);
@@ -82,6 +95,42 @@ export function ExportMenu({
     a.click();
     URL.revokeObjectURL(url);
     setIsOpen(false);
+  };
+
+  const handleDownloadPdf = async () => {
+    setPdfStatus('generating');
+    try {
+      // Normalize the environment
+      const normalizedAsset = normalizeEnvironment(environment, {
+        sourceType: 'AASX',
+        fileName,
+      });
+
+      // Run linter with all rule packs
+      const rulePacks = getAllRulePacks();
+      const lintResult = executeLinter(environment, rulePacks);
+
+      // Generate PDF
+      const result = await generatePdfReport({
+        asset: normalizedAsset,
+        lintResult,
+        fileName,
+      });
+
+      // Download blob
+      const url = URL.createObjectURL(result.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = result.filename;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      setPdfStatus('success');
+      setIsOpen(false);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      setPdfStatus('error');
+    }
   };
 
   const handleDownloadOriginalAasx = () => {
@@ -157,6 +206,29 @@ export function ExportMenu({
           >
             <FileJson size={14} className="export-menu-icon" aria-hidden="true" />
             <span>Download JSON</span>
+          </button>
+
+          <button
+            className="export-menu-item"
+            onClick={handleDownloadPdf}
+            role="menuitem"
+            disabled={pdfStatus === 'generating'}
+            aria-label="Download as PDF report"
+          >
+            {pdfStatus === 'generating' ? (
+              <div className="spinner-small" aria-hidden="true" />
+            ) : pdfStatus === 'success' ? (
+              <Check size={14} className="export-menu-icon success" aria-hidden="true" />
+            ) : (
+              <FileText size={14} className="export-menu-icon" aria-hidden="true" />
+            )}
+            <span>
+              {pdfStatus === 'generating'
+                ? 'Generating...'
+                : pdfStatus === 'success'
+                  ? 'Downloaded!'
+                  : 'Download PDF'}
+            </span>
           </button>
 
           <div className="export-menu-divider" role="separator" />
