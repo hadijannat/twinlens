@@ -12,31 +12,56 @@ import type { ValidationError } from '@shared/types';
  * Many real-world AASX files have minor spec deviations
  */
 function preprocessEnvironment(jsonable: unknown): unknown {
-  if (!jsonable || typeof jsonable !== 'object') {
-    return jsonable;
+  return deepClean(jsonable);
+}
+
+/**
+ * Recursively clean an object to fix common AAS spec deviations
+ */
+function deepClean(value: unknown, _parentKey?: string): unknown {
+  if (value === null || value === undefined) {
+    return value;
   }
 
-  const obj = jsonable as Record<string, unknown>;
+  if (Array.isArray(value)) {
+    return value.map((item) => deepClean(item));
+  }
 
-  // Process assetAdministrationShells
-  if (Array.isArray(obj.assetAdministrationShells)) {
-    obj.assetAdministrationShells = obj.assetAdministrationShells.map((shell) => {
-      if (shell && typeof shell === 'object') {
-        const s = shell as Record<string, unknown>;
-        // Fix assetInformation.globalAssetId if undefined/null
-        if (s.assetInformation && typeof s.assetInformation === 'object') {
-          const ai = s.assetInformation as Record<string, unknown>;
-          if (ai.globalAssetId === undefined || ai.globalAssetId === null) {
-            // Use a placeholder or derive from shell id
-            ai.globalAssetId = (s.id as string) || 'urn:unknown:asset';
-          }
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const cleaned: Record<string, unknown> = {};
+
+    for (const [key, val] of Object.entries(obj)) {
+      // Fix: keys should be an array, not undefined
+      if (key === 'keys' && (val === undefined || val === null)) {
+        cleaned[key] = [];
+        continue;
+      }
+
+      // Fix: globalAssetId should be a string, not undefined
+      if (key === 'globalAssetId' && (val === undefined || val === null)) {
+        // Try to derive from parent context or use placeholder
+        cleaned[key] = 'urn:undefined:asset';
+        continue;
+      }
+
+      // Fix: valueId with undefined keys - remove the whole valueId
+      if (key === 'valueId' && val && typeof val === 'object') {
+        const valueIdObj = val as Record<string, unknown>;
+        if (valueIdObj.keys === undefined || valueIdObj.keys === null) {
+          // Skip invalid valueId entirely
+          continue;
         }
       }
-      return shell;
-    });
+
+      // Recursively clean nested objects
+      cleaned[key] = deepClean(val, key);
+    }
+
+    return cleaned;
   }
 
-  return obj;
+  return value;
 }
 
 // Re-export JsonValue type for use by other modules
