@@ -8,7 +8,7 @@ import type { ChatMessage, AISettings, AssetContext } from '@lib/ai/types';
 import type { AIClient } from '@lib/ai/client';
 import type { AASEnvironment } from '@shared/types';
 import { buildAssetContext } from '@lib/ai/context';
-import { loadAISettings } from '@lib/ai/settings';
+import { loadAISettings, isProviderConfigured } from '@lib/ai/settings';
 import { createAIClient } from '@lib/ai/client';
 
 interface UseChatResult {
@@ -44,10 +44,10 @@ export function useChat(environment: AASEnvironment | null): UseChatResult {
     }
   }, [environment]);
 
-  // Create client when settings change
+  // Create client when settings change (only if configured)
   useEffect(() => {
-    if (settings?.apiKey) {
-      createAIClient(settings)
+    if (isProviderConfigured(settings)) {
+      createAIClient(settings!)
         .then(setClient)
         .catch((err) => {
           console.error('Failed to create AI client:', err);
@@ -137,7 +137,7 @@ export function useChat(environment: AASEnvironment | null): UseChatResult {
     messages,
     context,
     isLoading,
-    isConfigured: Boolean(settings?.apiKey),
+    isConfigured: isProviderConfigured(settings),
     settings,
     sendMessage,
     clearMessages,

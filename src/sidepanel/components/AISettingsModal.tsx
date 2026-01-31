@@ -1,12 +1,18 @@
 /**
  * AISettingsModal Component
- * Modal for configuring AI provider settings
+ * Modal for configuring AI provider settings with multi-provider support
  */
 
-import { useState, useCallback, useEffect } from 'react';
-import { X, Bot, Check, AlertCircle, Loader, Eye, EyeOff } from 'lucide-react';
-import type { AISettings } from '@lib/ai/types';
-import { saveAISettings, getModelsForProvider } from '@lib/ai/settings';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { X, Bot, Check, AlertCircle, Loader, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
+import type { AISettings, AIProvider } from '@lib/ai/types';
+import {
+  saveAISettings,
+  getModelsForProvider,
+  getProviderPreset,
+  PROVIDER_PRESETS,
+  getEffectiveModel,
+} from '@lib/ai/settings';
 import { createAIClient } from '@lib/ai/client';
 
 interface AISettingsModalProps {
@@ -22,26 +28,83 @@ export function AISettingsModal({
   onClose,
   onSave,
 }: AISettingsModalProps) {
+  // Form state
+  const [provider, setProvider] = useState<AIProvider>(settings?.provider || 'anthropic');
   const [apiKey, setApiKey] = useState(settings?.apiKey || '');
-  const [model, setModel] = useState(settings?.model || 'claude-sonnet-4-20250514');
-  const [showKey, setShowKey] = useState(false);
+  const [baseUrl, setBaseUrl] = useState(settings?.baseUrl || '');
+  const [model, setModel] = useState(settings?.model || '');
+  const [customModel, setCustomModel] = useState(settings?.customModel || '');
+  const [useCustomModel, setUseCustomModel] = useState(Boolean(settings?.customModel));
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [maxTokens, setMaxTokens] = useState(settings?.maxTokens || 1024);
+  const [temperature, setTemperature] = useState(settings?.temperature || 0.7);
 
+  const [showKey, setShowKey] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
 
+  // Get current provider preset
+  const preset = useMemo(() => getProviderPreset(provider), [provider]);
+  const models = useMemo(() => getModelsForProvider(provider), [provider]);
+
   // Reset form when settings change
   useEffect(() => {
     if (settings) {
+      setProvider(settings.provider);
       setApiKey(settings.apiKey || '');
-      setModel(settings.model || 'claude-sonnet-4-20250514');
+      setBaseUrl(settings.baseUrl || '');
+      setModel(settings.model || '');
+      setCustomModel(settings.customModel || '');
+      setUseCustomModel(Boolean(settings.customModel));
+      setMaxTokens(settings.maxTokens || 1024);
+      setTemperature(settings.temperature || 0.7);
     }
   }, [settings]);
 
+  // Reset model when provider changes
+  useEffect(() => {
+    const newModels = getModelsForProvider(provider);
+    const firstModel = newModels[0];
+    if (firstModel && !useCustomModel) {
+      setModel(firstModel.id);
+    }
+    // Reset baseUrl to preset default when switching providers
+    const newPreset = getProviderPreset(provider);
+    if (newPreset && !newPreset.supportsBaseUrl) {
+      setBaseUrl('');
+    }
+    // Clear test result on provider change
+    setTestResult(null);
+    setTestError(null);
+  }, [provider, useCustomModel]);
+
+  const buildSettings = useCallback((): AISettings => {
+    return {
+      provider,
+      apiKey: apiKey.trim() || undefined,
+      baseUrl: baseUrl.trim() || undefined,
+      model: useCustomModel ? undefined : model,
+      customModel: useCustomModel ? customModel.trim() : undefined,
+      maxTokens,
+      temperature,
+    };
+  }, [provider, apiKey, baseUrl, model, customModel, useCustomModel, maxTokens, temperature]);
+
   const handleTest = useCallback(async () => {
-    if (!apiKey.trim()) {
+    const testSettings = buildSettings();
+
+    // Validate required fields
+    if (preset?.requiresApiKey && !testSettings.apiKey) {
       setTestResult('error');
       setTestError('Please enter an API key');
+      return;
+    }
+
+    const effectiveModel = getEffectiveModel(testSettings);
+    if (!effectiveModel) {
+      setTestResult('error');
+      setTestError('Please select or enter a model');
       return;
     }
 
@@ -50,12 +113,6 @@ export function AISettingsModal({
     setTestError(null);
 
     try {
-      const testSettings: AISettings = {
-        provider: 'anthropic',
-        apiKey: apiKey.trim(),
-        model,
-      };
-
       const client = await createAIClient(testSettings);
       const connected = await client.testConnection();
 
@@ -63,7 +120,7 @@ export function AISettingsModal({
         setTestResult('success');
       } else {
         setTestResult('error');
-        setTestError('Connection failed - check your API key');
+        setTestError('Connection failed - check your settings');
       }
     } catch (err) {
       setTestResult('error');
@@ -71,25 +128,33 @@ export function AISettingsModal({
     } finally {
       setTesting(false);
     }
-  }, [apiKey, model]);
+  }, [buildSettings, preset]);
 
   const handleSave = useCallback(async () => {
-    if (!apiKey.trim()) return;
+    const newSettings = buildSettings();
 
-    const newSettings: AISettings = {
-      provider: 'anthropic',
-      apiKey: apiKey.trim(),
-      model,
-      maxTokens: settings?.maxTokens || 1024,
-      temperature: settings?.temperature || 0.7,
-    };
+    // Validate required fields
+    if (preset?.requiresApiKey && !newSettings.apiKey) {
+      return;
+    }
+
+    const effectiveModel = getEffectiveModel(newSettings);
+    if (!effectiveModel) {
+      return;
+    }
 
     await saveAISettings(newSettings);
     onSave(newSettings);
     onClose();
-  }, [apiKey, model, settings, onSave, onClose]);
+  }, [buildSettings, preset, onSave, onClose]);
 
-  const models = getModelsForProvider('anthropic');
+  // Check if save should be disabled
+  const canSave = useMemo(() => {
+    const effectiveModel = useCustomModel ? customModel.trim() : model;
+    if (!effectiveModel) return false;
+    if (preset?.requiresApiKey && !apiKey.trim()) return false;
+    return true;
+  }, [useCustomModel, customModel, model, preset, apiKey]);
 
   if (!isOpen) return null;
 
@@ -108,59 +173,161 @@ export function AISettingsModal({
         </div>
 
         <div className="modal-body">
+          {/* Provider Selection */}
           <div className="form-group">
             <label className="form-label">Provider</label>
-            <select className="form-select" value="anthropic" disabled>
-              <option value="anthropic">Anthropic Claude</option>
-            </select>
-            <span className="form-hint">More providers coming soon</span>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">API Key *</label>
-            <div className="input-with-toggle">
-              <input
-                type={showKey ? 'text' : 'password'}
-                className="form-input"
-                placeholder="sk-ant-..."
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-              />
-              <button
-                type="button"
-                className="input-toggle"
-                onClick={() => setShowKey(!showKey)}
-                title={showKey ? 'Hide API key' : 'Show API key'}
-              >
-                {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-            <span className="form-hint">
-              Get your API key from{' '}
-              <a
-                href="https://console.anthropic.com/settings/keys"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                console.anthropic.com
-              </a>
-            </span>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Model</label>
             <select
               className="form-select"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
+              value={provider}
+              onChange={(e) => setProvider(e.target.value as AIProvider)}
             >
-              {models.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
+              {PROVIDER_PRESETS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
                 </option>
               ))}
             </select>
+            {preset && (
+              <span className="form-hint">{preset.description}</span>
+            )}
           </div>
+
+          {/* API Key (conditional) */}
+          {preset?.requiresApiKey && (
+            <div className="form-group">
+              <label className="form-label">API Key *</label>
+              <div className="input-with-toggle">
+                <input
+                  type={showKey ? 'text' : 'password'}
+                  className="form-input"
+                  placeholder={preset.apiKeyPlaceholder || 'Enter API key'}
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="input-toggle"
+                  onClick={() => setShowKey(!showKey)}
+                  title={showKey ? 'Hide API key' : 'Show API key'}
+                >
+                  {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {preset.apiKeyDocsUrl && (
+                <span className="form-hint">
+                  Get your API key from{' '}
+                  <a
+                    href={preset.apiKeyDocsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {new URL(preset.apiKeyDocsUrl).hostname}
+                  </a>
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Base URL (for providers that support it) */}
+          {preset?.supportsBaseUrl && (
+            <div className="form-group">
+              <label className="form-label">Base URL</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder={preset.baseUrl}
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+              />
+              <span className="form-hint">
+                Leave empty to use default: {preset.baseUrl}
+              </span>
+            </div>
+          )}
+
+          {/* Model Selection */}
+          <div className="form-group">
+            <label className="form-label">Model</label>
+            {!useCustomModel && models.length > 0 ? (
+              <select
+                className="form-select"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+              >
+                {models.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g., gpt-4o, llama3.2, claude-sonnet-4"
+                value={customModel}
+                onChange={(e) => setCustomModel(e.target.value)}
+              />
+            )}
+            {preset?.allowCustomModel && (
+              <button
+                type="button"
+                className="form-link-btn"
+                onClick={() => {
+                  setUseCustomModel(!useCustomModel);
+                  if (!useCustomModel && models.length > 0) {
+                    setCustomModel('');
+                  }
+                }}
+              >
+                {useCustomModel ? 'Use preset models' : 'Enter custom model'}
+              </button>
+            )}
+          </div>
+
+          {/* Advanced Settings */}
+          <button
+            type="button"
+            className="form-section-toggle"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+          >
+            {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            Advanced Settings
+          </button>
+
+          {showAdvanced && (
+            <div className="form-advanced">
+              <div className="form-group">
+                <label className="form-label">
+                  Max Tokens: {maxTokens}
+                </label>
+                <input
+                  type="range"
+                  className="form-slider"
+                  min="256"
+                  max="4096"
+                  step="128"
+                  value={maxTokens}
+                  onChange={(e) => setMaxTokens(parseInt(e.target.value, 10))}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  Temperature: {temperature.toFixed(1)}
+                </label>
+                <input
+                  type="range"
+                  className="form-slider"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={temperature}
+                  onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Test result */}
           {testResult && (
@@ -185,14 +352,14 @@ export function AISettingsModal({
             <button
               className="btn btn-secondary"
               onClick={handleTest}
-              disabled={testing || !apiKey.trim()}
+              disabled={testing || !canSave}
             >
               {testing ? <Loader size={14} className="spin" /> : 'Test'}
             </button>
             <button
               className="btn btn-primary"
               onClick={handleSave}
-              disabled={!apiKey.trim()}
+              disabled={!canSave}
             >
               Save
             </button>

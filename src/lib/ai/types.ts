@@ -40,14 +40,40 @@ export interface SubmodelSummary {
   fullContent?: string;
 }
 
-export type AIProvider = 'anthropic' | 'openai' | 'local';
+/**
+ * Provider types:
+ * - 'anthropic': Native Anthropic API (different format)
+ * - 'openai': OpenAI API
+ * - 'openai-compatible': Any OpenAI-compatible endpoint (OpenRouter, Together, Groq, etc.)
+ * - 'ollama': Local Ollama instance (OpenAI-compatible)
+ */
+export type AIProvider = 'anthropic' | 'openai' | 'openai-compatible' | 'ollama';
+
+/**
+ * Provider metadata for UI and configuration
+ */
+export interface ProviderPreset {
+  id: AIProvider;
+  label: string;
+  description: string;
+  baseUrl: string;
+  requiresApiKey: boolean;
+  apiKeyPlaceholder?: string;
+  apiKeyDocsUrl?: string;
+  supportsBaseUrl: boolean;
+  defaultModels: { id: string; name: string }[];
+  allowCustomModel: boolean;
+}
 
 export interface AISettings {
   provider: AIProvider;
   apiKey?: string;
+  baseUrl?: string;
   model?: string;
+  customModel?: string; // For free-form model input
   maxTokens?: number;
   temperature?: number;
+  extraHeaders?: Record<string, string>;
 }
 
 export interface AIResponse {

@@ -407,6 +407,44 @@ body {
   background: var(--color-gray-100);
 }
 
+/* Model Control */
+.options-model-control {
+  display: flex;
+  gap: var(--spacing-2);
+  align-items: center;
+}
+
+.options-model-control .form-select,
+.options-model-control .form-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.options-model-toggle {
+  flex-shrink: 0;
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: white;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  color: var(--color-gray-600);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  white-space: nowrap;
+}
+
+.options-model-toggle:hover:not(:disabled) {
+  background: var(--color-gray-50);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.options-model-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Subsection */
 .options-subsection {
   padding: var(--spacing-3);

@@ -1,11 +1,146 @@
 /**
  * AI Settings
- * Storage and retrieval of AI configuration
+ * Storage, retrieval, and provider presets for AI configuration
  */
 
-import type { AISettings, AIProvider } from './types';
+import type { AISettings, AIProvider, ProviderPreset } from './types';
 
 const STORAGE_KEY = 'twinlens_ai_settings';
+
+/**
+ * Provider presets with metadata for UI and configuration
+ */
+export const PROVIDER_PRESETS: ProviderPreset[] = [
+  {
+    id: 'anthropic',
+    label: 'Anthropic Claude',
+    description: 'Claude models via Anthropic API',
+    baseUrl: 'https://api.anthropic.com',
+    requiresApiKey: true,
+    apiKeyPlaceholder: 'sk-ant-...',
+    apiKeyDocsUrl: 'https://console.anthropic.com/settings/keys',
+    supportsBaseUrl: false,
+    defaultModels: [
+      { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4' },
+      { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
+    ],
+    allowCustomModel: true,
+  },
+  {
+    id: 'openai',
+    label: 'OpenAI',
+    description: 'GPT models via OpenAI API',
+    baseUrl: 'https://api.openai.com/v1',
+    requiresApiKey: true,
+    apiKeyPlaceholder: 'sk-...',
+    apiKeyDocsUrl: 'https://platform.openai.com/api-keys',
+    supportsBaseUrl: false,
+    defaultModels: [
+      { id: 'gpt-4o', name: 'GPT-4o' },
+      { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+      { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
+    ],
+    allowCustomModel: true,
+  },
+  {
+    id: 'openai-compatible',
+    label: 'OpenAI-Compatible',
+    description: 'OpenRouter, Together, Groq, or any compatible endpoint',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    requiresApiKey: true,
+    apiKeyPlaceholder: 'sk-or-... or provider key',
+    apiKeyDocsUrl: 'https://openrouter.ai/keys',
+    supportsBaseUrl: true,
+    defaultModels: [
+      { id: 'anthropic/claude-sonnet-4', name: 'Claude Sonnet 4 (via OpenRouter)' },
+      { id: 'openai/gpt-4o', name: 'GPT-4o (via OpenRouter)' },
+      { id: 'google/gemini-pro-1.5', name: 'Gemini Pro 1.5 (via OpenRouter)' },
+      { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B (via OpenRouter)' },
+    ],
+    allowCustomModel: true,
+  },
+  {
+    id: 'ollama',
+    label: 'Ollama (Local)',
+    description: 'Local models via Ollama',
+    baseUrl: 'http://localhost:11434/v1',
+    requiresApiKey: false,
+    supportsBaseUrl: true,
+    defaultModels: [
+      { id: 'llama3.2', name: 'Llama 3.2' },
+      { id: 'mistral', name: 'Mistral' },
+      { id: 'qwen2.5', name: 'Qwen 2.5' },
+      { id: 'gemma2', name: 'Gemma 2' },
+    ],
+    allowCustomModel: true,
+  },
+];
+
+/**
+ * Get preset by provider ID
+ */
+export function getProviderPreset(provider: AIProvider): ProviderPreset | undefined {
+  return PROVIDER_PRESETS.find((p) => p.id === provider);
+}
+
+/**
+ * Get models for a provider (from preset defaults)
+ */
+export function getModelsForProvider(
+  provider: AIProvider
+): { id: string; name: string }[] {
+  const preset = getProviderPreset(provider);
+  return preset?.defaultModels ?? [];
+}
+
+/**
+ * Check if settings are properly configured for the selected provider
+ */
+export function isProviderConfigured(settings: AISettings | null): boolean {
+  if (!settings) return false;
+
+  const preset = getProviderPreset(settings.provider);
+  if (!preset) return false;
+
+  // Check API key requirement
+  if (preset.requiresApiKey && !settings.apiKey?.trim()) {
+    return false;
+  }
+
+  // Check baseUrl for providers that need it
+  if (preset.supportsBaseUrl && !settings.baseUrl?.trim()) {
+    // Only fail if it's a custom-url provider without default
+    if (settings.provider === 'openai-compatible' && !settings.baseUrl) {
+      return false;
+    }
+  }
+
+  // Check model selection
+  const model = settings.customModel?.trim() || settings.model;
+  if (!model) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Get the effective baseUrl for settings
+ */
+export function getEffectiveBaseUrl(settings: AISettings): string {
+  if (settings.baseUrl?.trim()) {
+    return settings.baseUrl.trim();
+  }
+  const preset = getProviderPreset(settings.provider);
+  return preset?.baseUrl ?? '';
+}
+
+/**
+ * Get the effective model for settings
+ */
+export function getEffectiveModel(settings: AISettings): string {
+  return settings.customModel?.trim() || settings.model || '';
+}
 
 const DEFAULT_SETTINGS: AISettings = {
   provider: 'anthropic',
@@ -35,20 +170,6 @@ export async function saveAISettings(settings: AISettings): Promise<void> {
     }
   } catch (err) {
     console.warn('Failed to save AI settings:', err);
-  }
-}
-
-export function getModelsForProvider(
-  provider: AIProvider
-): { id: string; name: string }[] {
-  switch (provider) {
-    case 'anthropic':
-      return [
-        { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4' },
-        { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
-      ];
-    default:
-      return [];
   }
 }
 

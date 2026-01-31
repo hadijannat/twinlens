@@ -21,6 +21,12 @@ export async function createAIClient(settings: AISettings): Promise<AIClient> {
       const { AnthropicClient } = await import('./anthropic');
       return new AnthropicClient(settings);
     }
+    case 'openai':
+    case 'openai-compatible':
+    case 'ollama': {
+      const { OpenAICompatibleClient } = await import('./openai-compatible');
+      return new OpenAICompatibleClient(settings);
+    }
     default:
       throw new Error(`Unsupported AI provider: ${settings.provider}`);
   }

@@ -3,19 +3,24 @@
  * User preferences for discovery, compliance, and AI settings
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Eye,
   Shield,
   Cpu,
-  Search,
   Monitor,
   CheckCircle,
   AlertCircle,
   EyeOff,
 } from 'lucide-react';
 import type { AISettings, AIProvider } from '@lib/ai/types';
-import { loadAISettings, saveAISettings, getModelsForProvider } from '@lib/ai/settings';
+import {
+  loadAISettings,
+  saveAISettings,
+  getModelsForProvider,
+  getProviderPreset,
+  PROVIDER_PRESETS,
+} from '@lib/ai/settings';
 
 // ============================================================================
 // Types
@@ -37,13 +42,6 @@ interface ComplianceSettings {
   severityOverride: SeverityOverride;
   showFutureRules: boolean;
 }
-
-// Note: AllSettings could be used for import/export functionality
-// interface AllSettings {
-//   general: GeneralSettings;
-//   compliance: ComplianceSettings;
-//   ai: AISettings;
-// }
 
 // ============================================================================
 // Storage Keys
@@ -180,9 +178,14 @@ export default function App() {
   const [general, setGeneral] = useState<GeneralSettings>(DEFAULT_GENERAL);
   const [compliance, setCompliance] = useState<ComplianceSettings>(DEFAULT_COMPLIANCE);
   const [ai, setAI] = useState<AISettings>({ provider: 'anthropic' });
+  const [useCustomModel, setUseCustomModel] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [loaded, setLoaded] = useState(false);
+
+  // Get current provider preset
+  const preset = useMemo(() => getProviderPreset(ai.provider), [ai.provider]);
+  const models = useMemo(() => getModelsForProvider(ai.provider), [ai.provider]);
 
   // Load settings on mount
   useEffect(() => {
@@ -195,6 +198,7 @@ export default function App() {
       setGeneral(loadedGeneral);
       setCompliance(loadedCompliance);
       setAI(loadedAI);
+      setUseCustomModel(Boolean(loadedAI.customModel));
       setLoaded(true);
     }
     load();
@@ -234,6 +238,20 @@ export default function App() {
     setAI((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleProviderChange = (provider: AIProvider) => {
+    const newModels = getModelsForProvider(provider);
+    const firstModel = newModels[0];
+
+    setAI((prev) => ({
+      ...prev,
+      provider,
+      model: firstModel?.id,
+      customModel: undefined,
+      baseUrl: undefined, // Reset to use preset default
+    }));
+    setUseCustomModel(false);
+  };
+
   const toggleRulePack = (packId: string) => {
     setCompliance((prev) => {
       const enabled = prev.enabledRulePacks.includes(packId);
@@ -245,8 +263,6 @@ export default function App() {
       };
     });
   };
-
-  const availableModels = getModelsForProvider(ai.provider);
 
   if (!loaded) {
     return (
@@ -398,65 +414,124 @@ export default function App() {
           title="AI Chat"
           description="Configure AI assistant for asset questions"
         >
-          <SettingRow label="Provider" description="AI service provider">
+          <SettingRow
+            label="Provider"
+            description={preset?.description || 'AI service provider'}
+          >
             <select
               className="form-select options-select"
               value={ai.provider}
-              onChange={(e) => {
-                const provider = e.target.value as AIProvider;
-                updateAI('provider', provider);
-                // Reset model when provider changes
-                const models = getModelsForProvider(provider);
-                if (models.length > 0) {
-                  updateAI('model', models[0]?.id);
-                }
-              }}
+              onChange={(e) => handleProviderChange(e.target.value as AIProvider)}
               disabled={general.localOnlyMode}
             >
-              <option value="anthropic">Anthropic (Claude)</option>
-              <option value="openai" disabled>
-                OpenAI (coming soon)
-              </option>
-              <option value="local" disabled>
-                Local (coming soon)
-              </option>
-            </select>
-          </SettingRow>
-
-          <SettingRow label="API Key" description="Your API key for the selected provider">
-            <div className="input-with-toggle">
-              <input
-                type={showApiKey ? 'text' : 'password'}
-                className="form-input"
-                value={ai.apiKey || ''}
-                onChange={(e) => updateAI('apiKey', e.target.value)}
-                placeholder="sk-..."
-                disabled={general.localOnlyMode}
-              />
-              <button
-                type="button"
-                className="input-toggle"
-                onClick={() => setShowApiKey(!showApiKey)}
-                title={showApiKey ? 'Hide API key' : 'Show API key'}
-              >
-                {showApiKey ? <EyeOff size={16} /> : <Search size={16} />}
-              </button>
-            </div>
-          </SettingRow>
-
-          <SettingRow label="Model" description="Which model to use for responses">
-            <select
-              className="form-select options-select"
-              value={ai.model}
-              onChange={(e) => updateAI('model', e.target.value)}
-              disabled={general.localOnlyMode || availableModels.length === 0}
-            >
-              {availableModels.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
+              {PROVIDER_PRESETS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
                 </option>
               ))}
             </select>
+          </SettingRow>
+
+          {/* API Key (conditional) */}
+          {preset?.requiresApiKey && (
+            <SettingRow
+              label="API Key"
+              description={
+                preset.apiKeyDocsUrl
+                  ? `Get from ${new URL(preset.apiKeyDocsUrl).hostname}`
+                  : 'Your API key for the selected provider'
+              }
+            >
+              <div className="input-with-toggle">
+                <input
+                  type={showApiKey ? 'text' : 'password'}
+                  className="form-input"
+                  value={ai.apiKey || ''}
+                  onChange={(e) => updateAI('apiKey', e.target.value)}
+                  placeholder={preset.apiKeyPlaceholder || 'Enter API key'}
+                  disabled={general.localOnlyMode}
+                />
+                <button
+                  type="button"
+                  className="input-toggle"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  title={showApiKey ? 'Hide API key' : 'Show API key'}
+                >
+                  {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </SettingRow>
+          )}
+
+          {/* Base URL (for providers that support it) */}
+          {preset?.supportsBaseUrl && (
+            <SettingRow
+              label="Base URL"
+              description={`Default: ${preset.baseUrl}`}
+            >
+              <input
+                type="text"
+                className="form-input"
+                value={ai.baseUrl || ''}
+                onChange={(e) => updateAI('baseUrl', e.target.value)}
+                placeholder={preset.baseUrl}
+                disabled={general.localOnlyMode}
+              />
+            </SettingRow>
+          )}
+
+          {/* Model Selection */}
+          <SettingRow
+            label="Model"
+            description="Which model to use for responses"
+          >
+            <div className="options-model-control">
+              {!useCustomModel && models.length > 0 ? (
+                <select
+                  className="form-select options-select"
+                  value={ai.model || ''}
+                  onChange={(e) => updateAI('model', e.target.value)}
+                  disabled={general.localOnlyMode}
+                >
+                  {models.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  className="form-input"
+                  value={ai.customModel || ''}
+                  onChange={(e) => updateAI('customModel', e.target.value)}
+                  placeholder="e.g., gpt-4o, llama3.2, claude-sonnet-4"
+                  disabled={general.localOnlyMode}
+                />
+              )}
+              {preset?.allowCustomModel && (
+                <button
+                  type="button"
+                  className="options-model-toggle"
+                  onClick={() => {
+                    if (useCustomModel) {
+                      // Switching back to presets
+                      updateAI('customModel', undefined);
+                      const firstModel = models[0];
+                      if (firstModel) {
+                        updateAI('model', firstModel.id);
+                      }
+                    } else {
+                      updateAI('model', undefined);
+                    }
+                    setUseCustomModel(!useCustomModel);
+                  }}
+                  disabled={general.localOnlyMode}
+                >
+                  {useCustomModel ? 'Use preset' : 'Custom'}
+                </button>
+              )}
+            </div>
           </SettingRow>
 
           <SettingRow
