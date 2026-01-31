@@ -29,12 +29,14 @@ import {
 type ScanIntensity = 'none' | 'passive' | 'active';
 type Theme = 'system' | 'light' | 'dark';
 type SeverityOverride = 'default' | 'treat-warn-as-error' | 'treat-warn-as-info';
+type ValidationMode = 'strict' | 'lenient';
 
 interface GeneralSettings {
   scanIntensity: ScanIntensity;
   localOnlyMode: boolean;
   theme: Theme;
   compactMode: boolean;
+  validationMode: ValidationMode;
 }
 
 interface ComplianceSettings {
@@ -61,6 +63,7 @@ const DEFAULT_GENERAL: GeneralSettings = {
   localOnlyMode: false,
   theme: 'system',
   compactMode: false,
+  validationMode: 'strict',
 };
 
 const DEFAULT_COMPLIANCE: ComplianceSettings = {
@@ -352,6 +355,20 @@ export default function App() {
               checked={general.compactMode}
               onChange={(v) => updateGeneral('compactMode', v)}
             />
+          </SettingRow>
+
+          <SettingRow
+            label="Validation Mode"
+            description="How strictly to validate AAS files"
+          >
+            <select
+              className="form-select options-select"
+              value={general.validationMode}
+              onChange={(e) => updateGeneral('validationMode', e.target.value as ValidationMode)}
+            >
+              <option value="strict">Strict (full verification)</option>
+              <option value="lenient">Lenient (parse-only)</option>
+            </select>
           </SettingRow>
         </Section>
 

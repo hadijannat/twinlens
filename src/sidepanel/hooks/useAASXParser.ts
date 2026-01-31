@@ -5,12 +5,17 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ParseResult, ParseWorkerRequest, ParseWorkerResponse } from '@shared/types';
+import type { ValidationMode } from '@lib/settings';
 
 type ParserState =
   | { status: 'idle' }
   | { status: 'loading' }
   | { status: 'success'; result: ParseResult; aasxData: ArrayBuffer; fileName: string }
   | { status: 'error'; error: string };
+
+interface UseAASXParserOptions {
+  validationMode?: ValidationMode;
+}
 
 interface UseAASXParserReturn {
   state: ParserState;
@@ -20,7 +25,8 @@ interface UseAASXParserReturn {
   reset: () => void;
 }
 
-export function useAASXParser(): UseAASXParserReturn {
+export function useAASXParser(options: UseAASXParserOptions = {}): UseAASXParserReturn {
+  const { validationMode } = options;
   const [state, setState] = useState<ParserState>({ status: 'idle' });
   const workerRef = useRef<Worker | null>(null);
   const requestIdRef = useRef(0);
@@ -93,10 +99,11 @@ export function useAASXParser(): UseAASXParserReturn {
         type: 'parse',
         fileData,
         fileName,
+        validationMode,
       };
       worker.postMessage(request, [fileData]);
     },
-    []
+    [validationMode]
   );
 
   const parseArrayBuffer = useCallback(

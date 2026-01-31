@@ -10,12 +10,14 @@
 export type ScanIntensity = 'none' | 'passive' | 'active';
 export type Theme = 'system' | 'light' | 'dark';
 export type SeverityOverride = 'default' | 'treat-warn-as-error' | 'treat-warn-as-info';
+export type ValidationMode = 'strict' | 'lenient';
 
 export interface GeneralSettings {
   scanIntensity: ScanIntensity;
   localOnlyMode: boolean;
   theme: Theme;
   compactMode: boolean;
+  validationMode: ValidationMode;
 }
 
 export interface ComplianceSettings {
@@ -42,6 +44,7 @@ export const DEFAULT_GENERAL: GeneralSettings = {
   localOnlyMode: false,
   theme: 'system',
   compactMode: false,
+  validationMode: 'strict',
 };
 
 export const DEFAULT_COMPLIANCE: ComplianceSettings = {

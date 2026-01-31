@@ -11,6 +11,14 @@ import type { ValidationError } from '@shared/types';
 type JsonValue = aasJsonization.JsonValue;
 
 /**
+ * Options for validation
+ */
+export interface ValidationOptions {
+  mode: 'strict' | 'lenient';
+  maxErrors?: number;
+}
+
+/**
  * Result of validation attempt
  */
 export interface AASValidationResult {
@@ -31,13 +39,14 @@ export interface AASValidationResult {
  * Uses the official aas-core library for spec-compliant validation
  *
  * @param jsonable - Parsed JSON object representing an AAS environment
- * @param maxErrors - Maximum number of errors to collect (default: 100)
+ * @param options - Validation options (mode and maxErrors)
  * @returns Validation result with errors and optionally the typed environment
  */
 export function validateAASEnvironment(
   jsonable: unknown,
-  maxErrors = 100
+  options: ValidationOptions = { mode: 'strict', maxErrors: 100 }
 ): AASValidationResult {
+  const { mode, maxErrors = 100 } = options;
   const deserializationErrors: ValidationError[] = [];
   const verificationErrors: ValidationError[] = [];
 
@@ -64,6 +73,18 @@ export function validateAASEnvironment(
   // Step 2: Deserialization succeeded, now verify constraints
   const environment = instanceOrError.mustValue();
 
+  // In lenient mode, skip verification step (constraint checks)
+  if (mode === 'lenient') {
+    return {
+      valid: true,
+      environment,
+      deserializationErrors,
+      verificationErrors: [],
+      allErrors: deserializationErrors,
+    };
+  }
+
+  // Strict mode: run full verification
   let errorCount = 0;
   for (const error of aas.verification.verify(environment)) {
     verificationErrors.push({
@@ -119,7 +140,7 @@ export function summarizeValidationErrors(
 /**
  * Categorize an error message into a broad category
  */
-function categorizeError(message: string): string {
+export function categorizeError(message: string): string {
   const lowerMessage = message.toLowerCase();
 
   if (lowerMessage.includes('id-short') || lowerMessage.includes('idshort')) {

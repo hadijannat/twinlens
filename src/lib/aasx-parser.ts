@@ -11,7 +11,7 @@
 
 import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
-import { validateAASEnvironment } from './aas-validator';
+import { validateAASEnvironment, type ValidationOptions } from './aas-validator';
 import type {
   AASEnvironment,
   ParseResult,
@@ -445,7 +445,10 @@ function transformXmlEnvironment(xmlData: unknown): AASEnvironment {
 // Main Parser
 // ============================================================================
 
-export async function parseAASX(fileData: ArrayBuffer): Promise<ParseResult> {
+export async function parseAASX(
+  fileData: ArrayBuffer,
+  validationOptions?: ValidationOptions
+): Promise<ParseResult> {
   const validationErrors: ValidationError[] = [];
   const supplementaryFiles: SupplementaryFile[] = [];
   let thumbnail: string | undefined;
@@ -561,7 +564,7 @@ export async function parseAASX(fileData: ArrayBuffer): Promise<ParseResult> {
   let environment = normalizeEnvironment(rawEnvironment as Partial<AASEnvironment>);
 
   // Step 5: Validate using official aas-core library
-  const validationResult = validateAASEnvironment(environment);
+  const validationResult = validateAASEnvironment(environment, validationOptions);
 
   // Collect all validation errors
   for (const error of validationResult.allErrors) {
@@ -629,7 +632,10 @@ export async function parseAASX(fileData: ArrayBuffer): Promise<ParseResult> {
 /**
  * Parse a standalone JSON AAS environment
  */
-export async function parseJSON(jsonData: string | ArrayBuffer): Promise<ParseResult> {
+export async function parseJSON(
+  jsonData: string | ArrayBuffer,
+  validationOptions?: ValidationOptions
+): Promise<ParseResult> {
   const validationErrors: ValidationError[] = [];
 
   // Convert ArrayBuffer to string if needed
@@ -658,7 +664,7 @@ export async function parseJSON(jsonData: string | ArrayBuffer): Promise<ParseRe
   const environment = normalizeEnvironment(rawEnv as Partial<AASEnvironment>);
 
   // Validate using official aas-core library
-  const validationResult = validateAASEnvironment(environment);
+  const validationResult = validateAASEnvironment(environment, validationOptions);
 
   // Collect all validation errors
   for (const error of validationResult.allErrors) {
@@ -678,17 +684,18 @@ export async function parseJSON(jsonData: string | ArrayBuffer): Promise<ParseRe
  */
 export async function parseAASData(
   fileData: ArrayBuffer,
-  fileName: string
+  fileName: string,
+  validationOptions?: ValidationOptions
 ): Promise<ParseResult> {
   // Check file extension first
   const ext = fileName.toLowerCase().split('.').pop();
 
   if (ext === 'json') {
-    return parseJSON(fileData);
+    return parseJSON(fileData, validationOptions);
   }
 
   if (ext === 'aasx') {
-    return parseAASX(fileData);
+    return parseAASX(fileData, validationOptions);
   }
 
   // Try to detect format from content
@@ -702,13 +709,13 @@ export async function parseAASData(
 
   // Check for ZIP signature (PK..)
   if (byte0 === 0x50 && byte1 === 0x4b) {
-    return parseAASX(fileData);
+    return parseAASX(fileData, validationOptions);
   }
 
   // Check for JSON (starts with { or [)
   const firstChar = String.fromCharCode(byte0);
   if (firstChar === '{' || firstChar === '[') {
-    return parseJSON(fileData);
+    return parseJSON(fileData, validationOptions);
   }
 
   throw new Error(

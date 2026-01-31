@@ -7,14 +7,22 @@ import { parseAASData } from '@lib/aasx-parser';
 import type { ParseWorkerRequest, ParseWorkerResponse } from '@shared/types';
 
 self.onmessage = async (event: MessageEvent<ParseWorkerRequest>) => {
-  const { type, fileData, fileName } = event.data;
+  const { type, fileData, fileName, validationMode } = event.data;
 
   if (type !== 'parse') {
     return;
   }
 
   try {
-    const result = await parseAASData(fileData, fileName || 'unknown.aasx');
+    const validationOptions = validationMode
+      ? { mode: validationMode, maxErrors: 100 }
+      : undefined;
+
+    const result = await parseAASData(
+      fileData,
+      fileName || 'unknown.aasx',
+      validationOptions
+    );
 
     const response: ParseWorkerResponse = {
       type: 'success',

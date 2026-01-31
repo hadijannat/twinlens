@@ -64,8 +64,10 @@ export default function App() {
   const [registryConfig, setRegistryConfig] = useState<RegistryConfig | null>(null);
   const [showRegistryConnector, setShowRegistryConnector] = useState(false);
   const [showAISettings, setShowAISettings] = useState(false);
-  const { state, parseFile, parseArrayBuffer, setError, reset } = useAASXParser();
   const appSettings = useSettings();
+  const { state, parseFile, parseArrayBuffer, setError, reset } = useAASXParser({
+    validationMode: appSettings.general.validationMode,
+  });
 
   // Get environment for chat hook
   const environment = state.status === 'success' ? state.result.environment : null;
@@ -462,6 +464,7 @@ export default function App() {
             <ExportMenu
               environment={state.result.environment}
               aasxData={state.aasxData}
+              supplementaryFiles={state.result.supplementaryFiles}
               fileName={state.fileName}
             />
             {!isPinned ? (

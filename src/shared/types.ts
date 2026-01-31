@@ -449,6 +449,7 @@ export interface ParseWorkerRequest {
   type: 'parse';
   fileData: ArrayBuffer;
   fileName: string;
+  validationMode?: 'strict' | 'lenient';
 }
 
 export interface ParseWorkerResponse {

@@ -4,29 +4,30 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { Download, Copy, FileJson, Package, Check } from 'lucide-react';
-import type { AASEnvironment } from '@shared/types';
-import {
-  copyToClipboard,
-  downloadJson,
-  downloadArrayBuffer,
-} from '@lib/file-utils';
+import { Download, Copy, FileJson, Package, Check, Save } from 'lucide-react';
+import type { AASEnvironment, SupplementaryFile } from '@shared/types';
+import { copyToClipboard, downloadArrayBuffer } from '@lib/file-utils';
+import { serializeToJson, buildAasx } from '@lib/aasx-serializer';
 
 interface ExportMenuProps {
   environment: AASEnvironment;
   aasxData: ArrayBuffer;
+  supplementaryFiles?: SupplementaryFile[];
   fileName?: string;
 }
 
 type CopyStatus = 'idle' | 'success' | 'error';
+type SaveStatus = 'idle' | 'saving' | 'success' | 'error';
 
 export function ExportMenu({
   environment,
   aasxData,
+  supplementaryFiles = [],
   fileName = 'asset.aasx',
 }: ExportMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu on outside click
@@ -51,8 +52,17 @@ export function ExportMenu({
     }
   }, [copyStatus]);
 
+  // Reset save status after delay
+  useEffect(() => {
+    if (saveStatus === 'success' || saveStatus === 'error') {
+      const timer = setTimeout(() => setSaveStatus('idle'), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [saveStatus]);
+
   const handleCopyJson = async () => {
-    const json = JSON.stringify(environment, null, 2);
+    // Use clean aas-core serialization
+    const json = serializeToJson(environment, true);
     const success = await copyToClipboard(json);
     setCopyStatus(success ? 'success' : 'error');
     if (success) {
@@ -62,17 +72,50 @@ export function ExportMenu({
 
   const handleDownloadJson = () => {
     const baseName = fileName.replace(/\.aasx$/i, '');
-    downloadJson(environment, `${baseName}.json`);
+    // Use clean aas-core serialization
+    const json = serializeToJson(environment, true);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${baseName}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
     setIsOpen(false);
   };
 
-  const handleDownloadAasx = () => {
+  const handleDownloadOriginalAasx = () => {
     downloadArrayBuffer(
       aasxData,
       fileName,
       'application/asset-administration-shell-package'
     );
     setIsOpen(false);
+  };
+
+  const handleSaveAsAasx = async () => {
+    setSaveStatus('saving');
+
+    try {
+      const baseName = fileName.replace(/\.aasx$/i, '');
+      const newAasxData = await buildAasx(environment, {
+        originalAasxData: aasxData,
+        supplementaryFiles,
+        prettyPrint: true,
+      });
+
+      downloadArrayBuffer(
+        newAasxData,
+        `${baseName}-export.aasx`,
+        'application/asset-administration-shell-package'
+      );
+
+      setSaveStatus('success');
+      setIsOpen(false);
+    } catch (err) {
+      console.error('Failed to save AASX:', err);
+      setSaveStatus('error');
+    }
   };
 
   return (
@@ -120,12 +163,35 @@ export function ExportMenu({
 
           <button
             className="export-menu-item"
-            onClick={handleDownloadAasx}
+            onClick={handleSaveAsAasx}
+            role="menuitem"
+            disabled={saveStatus === 'saving'}
+            aria-label="Save as new AASX file with clean serialization"
+          >
+            {saveStatus === 'saving' ? (
+              <div className="spinner-small" aria-hidden="true" />
+            ) : saveStatus === 'success' ? (
+              <Check size={14} className="export-menu-icon success" aria-hidden="true" />
+            ) : (
+              <Save size={14} className="export-menu-icon" aria-hidden="true" />
+            )}
+            <span>
+              {saveStatus === 'saving'
+                ? 'Saving...'
+                : saveStatus === 'success'
+                  ? 'Saved!'
+                  : 'Save As AASX'}
+            </span>
+          </button>
+
+          <button
+            className="export-menu-item"
+            onClick={handleDownloadOriginalAasx}
             role="menuitem"
             aria-label="Download original AASX file"
           >
             <Package size={14} className="export-menu-icon" aria-hidden="true" />
-            <span>Download AASX</span>
+            <span>Download Original</span>
           </button>
         </div>
       )}

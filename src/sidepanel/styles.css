@@ -305,6 +305,15 @@ body {
   animation: spin 1s linear infinite;
 }
 
+.spinner-small {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-gray-200);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -399,6 +408,14 @@ body {
   padding: var(--spacing-4);
 }
 
+.validation-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
 .validation-errors h3 {
   display: flex;
   align-items: center;
@@ -406,7 +423,99 @@ body {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-error);
-  margin-bottom: var(--spacing-2);
+  margin: 0;
+}
+
+.validation-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.validation-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  color: var(--color-gray-500);
+}
+
+.validation-filter select {
+  padding: var(--spacing-1) var(--spacing-2);
+  font-size: 0.6875rem;
+  color: var(--color-gray-700);
+  background: white;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.validation-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1) var(--spacing-2);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-gray-600);
+  background: white;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.validation-copy-btn:hover {
+  background: var(--color-gray-50);
+  border-color: var(--color-gray-300);
+}
+
+.validation-categories {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.validation-category {
+  background: white;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.validation-category-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  width: 100%;
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-gray-700);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.validation-category-header:hover {
+  background: var(--color-gray-50);
+}
+
+.validation-category-name {
+  flex: 1;
+  text-align: left;
+}
+
+.validation-category-count {
+  padding: 0 var(--spacing-2);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: white;
+  background: var(--color-error);
+  border-radius: 9999px;
+}
+
+.validation-category-errors {
+  padding: 0 var(--spacing-3) var(--spacing-2);
 }
 
 .validation-error {
@@ -414,9 +523,14 @@ body {
   font-size: 0.75rem;
   font-family: var(--font-mono);
   color: var(--color-gray-700);
-  background: white;
+  background: var(--color-gray-50);
   border-radius: var(--radius-sm);
   margin-top: var(--spacing-2);
+  word-break: break-word;
+}
+
+.validation-error:first-child {
+  margin-top: 0;
 }
 
 .validation-error .path {
