@@ -42,10 +42,19 @@ const KeySchema = z.object({
   value: z.string(),
 });
 
+// Helper to coerce single object to array (common in v2 format)
+const coerceToArray = <T>(schema: z.ZodType<T>) =>
+  z.preprocess((val) => {
+    if (Array.isArray(val)) return val;
+    if (val && typeof val === 'object') return [val];
+    return val;
+  }, z.array(schema));
+
 // Reference.type made optional - can be inferred from keys
+// keys can be single object in v2 format, coerce to array
 const ReferenceSchema = z.object({
   type: z.enum(['ExternalReference', 'ModelReference']).optional(),
-  keys: z.array(KeySchema),
+  keys: coerceToArray(KeySchema),
 });
 
 const LangStringSetSchema = z.object({
@@ -94,9 +103,15 @@ const ExtensionSchema = z.object({
   refersTo: z.array(ReferenceSchema).optional(),
 });
 
+// Coerce number to string (version can be number in some files)
+const stringOrNumber = z.preprocess(
+  (val) => (typeof val === 'number' ? String(val) : val),
+  z.string()
+);
+
 const AdministrativeInformationSchema = z.object({
-  version: z.string().optional(),
-  revision: z.string().optional(),
+  version: stringOrNumber.optional(),
+  revision: stringOrNumber.optional(),
   creator: ReferenceSchema.optional(),
   templateId: z.string().optional(),
 });
