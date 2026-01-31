@@ -28,11 +28,18 @@ export function AISettingsModal({
   onClose,
   onSave,
 }: AISettingsModalProps) {
+  // Initialize model from settings or first model in preset
+  const getInitialModel = (provider: AIProvider, savedModel?: string): string => {
+    if (savedModel) return savedModel;
+    const models = getModelsForProvider(provider);
+    return models[0]?.id || '';
+  };
+
   // Form state
   const [provider, setProvider] = useState<AIProvider>(settings?.provider || 'anthropic');
   const [apiKey, setApiKey] = useState(settings?.apiKey || '');
   const [baseUrl, setBaseUrl] = useState(settings?.baseUrl || '');
-  const [model, setModel] = useState(settings?.model || '');
+  const [model, setModel] = useState(() => getInitialModel(settings?.provider || 'anthropic', settings?.model));
   const [customModel, setCustomModel] = useState(settings?.customModel || '');
   const [useCustomModel, setUseCustomModel] = useState(Boolean(settings?.customModel));
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -54,7 +61,7 @@ export function AISettingsModal({
       setProvider(settings.provider);
       setApiKey(settings.apiKey || '');
       setBaseUrl(settings.baseUrl || '');
-      setModel(settings.model || '');
+      setModel(getInitialModel(settings.provider, settings.model));
       setCustomModel(settings.customModel || '');
       setUseCustomModel(Boolean(settings.customModel));
       setMaxTokens(settings.maxTokens || 1024);
