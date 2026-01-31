@@ -3211,6 +3211,70 @@ body {
   border-color: var(--color-primary);
 }
 
+/* Citation wrapper for tooltip positioning */
+.chat-citation-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Citation tooltip */
+.chat-citation-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 6px;
+  padding: var(--spacing-2);
+  background: var(--color-gray-900);
+  color: white;
+  border-radius: var(--radius-md);
+  font-size: 0.6875rem;
+  white-space: nowrap;
+  z-index: 100;
+  box-shadow: var(--shadow-md);
+  min-width: 180px;
+  max-width: 280px;
+}
+
+.chat-citation-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--color-gray-900);
+}
+
+.chat-citation-tooltip-row {
+  display: flex;
+  gap: var(--spacing-2);
+  padding: 2px 0;
+}
+
+.chat-citation-tooltip-row:not(:last-child) {
+  border-bottom: 1px solid var(--color-gray-700);
+  padding-bottom: 4px;
+  margin-bottom: 2px;
+}
+
+.chat-citation-tooltip-label {
+  color: var(--color-gray-400);
+  flex-shrink: 0;
+}
+
+.chat-citation-tooltip-value {
+  color: white;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-citation-tooltip-mono {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+}
+
 /* Chat Input */
 .chat-input-container {
   display: flex;
@@ -3524,4 +3588,25 @@ body {
 
 model-viewer {
   --poster-color: transparent;
+}
+
+/* ============================================================================
+   Local-Only Mode Banner
+   ============================================================================ */
+
+.local-only-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-bottom: 1px solid #86efac;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #166534;
+}
+
+.local-only-banner svg {
+  flex-shrink: 0;
 }

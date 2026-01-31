@@ -9,6 +9,7 @@ import type {
   ResolutionOptions,
   EndpointType,
 } from '../types';
+import { guardedFetch, NetworkBlockedError } from '../../network-guard';
 
 /** Strategy interface for resolution methods */
 export interface ResolutionStrategy {
@@ -159,7 +160,7 @@ export const directStrategy: ResolutionStrategy = {
 
     try {
       // Use HEAD request first for efficiency
-      const response = await fetch(url, {
+      const response = await guardedFetch(url, {
         method: 'HEAD',
         redirect: 'follow',
         signal: controller.signal,
@@ -214,6 +215,10 @@ export const directStrategy: ResolutionStrategy = {
       clearTimeout(timeoutId);
       // Rethrow abort errors
       if (error instanceof Error && error.name === 'AbortError') {
+        throw error;
+      }
+      // Rethrow NetworkBlockedError so caller knows local-only mode is active
+      if (error instanceof NetworkBlockedError) {
         throw error;
       }
       // Silently fail for network errors - other strategies may succeed

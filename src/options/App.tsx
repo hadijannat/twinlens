@@ -12,7 +12,9 @@ import {
   CheckCircle,
   AlertCircle,
   EyeOff,
+  Lock,
 } from 'lucide-react';
+import { PrivacySection } from './components/PrivacySection';
 import type { AISettings, AIProvider } from '@lib/ai/types';
 import {
   loadAISettings,
@@ -359,6 +361,15 @@ export default function App() {
               onChange={(v) => updateCompliance('showFutureRules', v)}
             />
           </SettingRow>
+        </Section>
+
+        {/* Privacy Section */}
+        <Section
+          icon={<Lock size={20} />}
+          title="Privacy"
+          description="How TwinLens handles your data"
+        >
+          <PrivacySection />
         </Section>
 
         {/* AI Settings */}

@@ -7,6 +7,7 @@ import type { AIClient } from './client';
 import type { AISettings, AIResponse, AssetContext, ChatMessage } from './types';
 import { buildSystemPrompt } from './prompts';
 import { fetchWithPermission } from '../permissions';
+import { extractCitations } from './citation-parser';
 
 interface AnthropicMessage {
   role: 'user' | 'assistant';
@@ -80,12 +81,16 @@ export class AnthropicClient implements AIClient {
     }
 
     if (onStream && response.body) {
-      return this.handleStream(response.body, onStream);
+      return this.handleStream(response.body, onStream, context);
     }
 
     const data = await response.json();
+    const rawContent = data.content[0]?.text || '';
+    const { cleanedContent, citations } = extractCitations(rawContent, context);
+
     return {
-      content: data.content[0]?.text || '',
+      content: cleanedContent,
+      citations,
       usage: data.usage
         ? {
             inputTokens: data.usage.input_tokens,
@@ -115,7 +120,8 @@ export class AnthropicClient implements AIClient {
 
   private async handleStream(
     body: ReadableStream<Uint8Array>,
-    onStream: (chunk: string) => void
+    onStream: (chunk: string) => void,
+    context: AssetContext
   ): Promise<AIResponse> {
     const reader = body.getReader();
     const decoder = new TextDecoder();
@@ -152,6 +158,8 @@ export class AnthropicClient implements AIClient {
       reader.releaseLock();
     }
 
-    return { content: fullContent };
+    // Extract citations from the complete response
+    const { cleanedContent, citations } = extractCitations(fullContent, context);
+    return { content: cleanedContent, citations };
   }
 }

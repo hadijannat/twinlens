@@ -16,6 +16,7 @@ import { RegistryBrowser } from './components/RegistryBrowser';
 import { RegistryConnector } from './components/RegistryConnector';
 import { ChatView } from './components/ChatView';
 import { AISettingsModal } from './components/AISettingsModal';
+import { LocalOnlyBanner } from './components/LocalOnlyBanner';
 import { useAASXParser } from './hooks/useAASXParser';
 import { useChat } from './hooks/useChat';
 import { useSettings } from './hooks/useSettings';
@@ -422,6 +423,7 @@ export default function App() {
 
   return (
     <div className="app">
+      {appSettings.general.localOnlyMode && <LocalOnlyBanner />}
       {state.status === 'success' && (
         <header className="app-toolbar" aria-label="File actions">
           <div className="app-toolbar-actions">

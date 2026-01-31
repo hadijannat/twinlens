@@ -9,6 +9,7 @@ import { getEffectiveBaseUrl, getEffectiveModel } from './settings';
 import { formatContextForPrompt } from './context';
 import { fetchWithPermission } from '../permissions';
 import { sanitizeHeaders } from './header-sanitizer';
+import { extractCitations } from './citation-parser';
 
 interface OpenAIMessage {
   role: 'system' | 'user' | 'assistant';
@@ -90,16 +91,17 @@ export class OpenAICompatibleClient implements AIClient {
     const endpoint = `${this.baseUrl}/chat/completions`;
 
     if (onStream) {
-      return this.streamChat(endpoint, headers, body, onStream);
+      return this.streamChat(endpoint, headers, body, onStream, context);
     } else {
-      return this.nonStreamChat(endpoint, headers, body);
+      return this.nonStreamChat(endpoint, headers, body, context);
     }
   }
 
   private async nonStreamChat(
     endpoint: string,
     headers: Record<string, string>,
-    body: object
+    body: object,
+    context: AssetContext
   ): Promise<AIResponse> {
     const response = await fetchWithPermission(endpoint, {
       method: 'POST',
@@ -113,10 +115,12 @@ export class OpenAICompatibleClient implements AIClient {
     }
 
     const data = (await response.json()) as OpenAIResponse;
-    const content = data.choices[0]?.message?.content || '';
+    const rawContent = data.choices[0]?.message?.content || '';
+    const { cleanedContent, citations } = extractCitations(rawContent, context);
 
     return {
-      content,
+      content: cleanedContent,
+      citations,
       usage: data.usage
         ? {
             inputTokens: data.usage.prompt_tokens,
@@ -130,7 +134,8 @@ export class OpenAICompatibleClient implements AIClient {
     endpoint: string,
     headers: Record<string, string>,
     body: object,
-    onStream: (chunk: string) => void
+    onStream: (chunk: string) => void,
+    context: AssetContext
   ): Promise<AIResponse> {
     const response = await fetchWithPermission(endpoint, {
       method: 'POST',
@@ -181,8 +186,11 @@ export class OpenAICompatibleClient implements AIClient {
       }
     }
 
+    // Extract citations from the complete response
+    const { cleanedContent, citations } = extractCitations(fullContent, context);
     return {
-      content: fullContent,
+      content: cleanedContent,
+      citations,
     };
   }
 

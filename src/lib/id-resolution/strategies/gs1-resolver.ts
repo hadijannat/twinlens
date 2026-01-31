@@ -5,6 +5,7 @@
 
 import type { ResolvedEndpoint, EndpointType } from '../types';
 import type { ResolutionStrategy } from './direct';
+import { guardedFetch, NetworkBlockedError } from '../../network-guard';
 
 /** GS1 resolver domains */
 const GS1_RESOLVER_PATTERNS = [
@@ -137,7 +138,7 @@ export const gs1ResolverStrategy: ResolutionStrategy = {
 
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      const response = await fetch(resolverUrl.toString(), {
+      const response = await guardedFetch(resolverUrl.toString(), {
         method: 'GET',
         signal: controller.signal,
         headers: {
@@ -162,7 +163,11 @@ export const gs1ResolverStrategy: ResolutionStrategy = {
       const discovered = parseLinkSet(data);
       endpoints.push(...discovered);
 
-    } catch {
+    } catch (error) {
+      // Rethrow NetworkBlockedError so caller knows local-only mode is active
+      if (error instanceof NetworkBlockedError) {
+        throw error;
+      }
       // Query failed, return empty
     }
 

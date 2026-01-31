@@ -19,7 +19,9 @@ export function buildSystemPrompt(context: AssetContext): string {
 
 ## Response Guidelines
 1. **Be accurate**: Only state facts present in the data. If information isn't available, say so.
-2. **Cite sources**: When referencing specific values, mention the submodel and property name.
+2. **Cite sources**: When referencing specific data values, use the citation format: [Value](Submodel.PropertyName)
+   - Example: The manufacturer is [Siemens AG](Nameplate.ManufacturerName).
+   - Example: The carbon footprint is [1234.5 kg CO2eq](CarbonFootprint.PCFCO2eq).
 3. **Be concise**: Provide direct answers, then elaborate if needed.
 4. **Use context**: Reference the asset by its name/ID when appropriate.
 5. **Explain terminology**: Help users understand AAS concepts when relevant.

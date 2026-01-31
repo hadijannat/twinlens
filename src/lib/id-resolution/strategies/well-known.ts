@@ -9,6 +9,7 @@ import type {
 } from '../types';
 import { WELL_KNOWN_PATHS } from '../types';
 import type { ResolutionStrategy } from './direct';
+import { guardedFetch, NetworkBlockedError } from '../../network-guard';
 
 /** Content types that indicate AAS-related responses */
 const AAS_CONTENT_TYPES = [
@@ -90,7 +91,7 @@ export const wellKnownStrategy: ResolutionStrategy = {
       try {
         const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-        const response = await fetch(probeUrl, {
+        const response = await guardedFetch(probeUrl, {
           method: 'GET',
           signal: controller.signal,
           headers: {
@@ -128,7 +129,11 @@ export const wellKnownStrategy: ResolutionStrategy = {
         }
 
         return null;
-      } catch {
+      } catch (error) {
+        // Rethrow NetworkBlockedError so caller knows local-only mode is active
+        if (error instanceof NetworkBlockedError) {
+          throw error;
+        }
         // Probe failed, continue with others
         return null;
       }
