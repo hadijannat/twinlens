@@ -10,6 +10,13 @@ interface DocumentsListProps {
   files: SupplementaryFile[];
 }
 
+// Safely convert to array
+function safeArray<T>(value: T | T[] | undefined | null): T[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  return [value];
+}
+
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -33,7 +40,9 @@ function getFileIcon(contentType: string) {
 }
 
 export function DocumentsList({ files }: DocumentsListProps) {
-  if (files.length === 0) {
+  const fileList = safeArray(files);
+
+  if (fileList.length === 0) {
     return (
       <div className="card">
         <div className="empty-state">
@@ -49,12 +58,12 @@ export function DocumentsList({ files }: DocumentsListProps) {
       <div className="card-header">
         <FileText size={16} />
         <span className="card-title">
-          Supplementary Files ({files.length})
+          Supplementary Files ({fileList.length})
         </span>
       </div>
 
       <div className="documents-list">
-        {files.map((file, index) => (
+        {fileList.map((file, index) => (
           <div key={index} className="document-item">
             <span className="icon">{getFileIcon(file.contentType)}</span>
             <span className="name" title={file.path}>
