@@ -60,13 +60,15 @@ export function ChatInput({
         placeholder={placeholder || 'Ask a question about this asset...'}
         disabled={disabled || isLoading}
         rows={1}
+        aria-label={placeholder || 'Ask a question about this asset'}
       />
       <button
         className="chat-send-btn"
         onClick={handleSubmit}
         disabled={disabled || isLoading || !value.trim()}
+        aria-label={isLoading ? 'Sending message...' : 'Send message'}
       >
-        {isLoading ? <Loader size={18} className="spin" /> : <Send size={18} />}
+        {isLoading ? <Loader size={18} className="spin" aria-hidden="true" /> : <Send size={18} aria-hidden="true" />}
       </button>
     </div>
   );

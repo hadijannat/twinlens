@@ -5,9 +5,7 @@
 
 import { resolveIdLinkActive } from '@lib/id-resolution';
 import type { ResolutionOptions, ResolutionResult } from '@lib/id-resolution';
-
-// Maximum allowed QR image size (5MB)
-const MAX_QR_IMAGE_SIZE = 5 * 1024 * 1024;
+import { MAX_QR_IMAGE_SIZE } from '@shared/constants';
 
 // Track active ID Link resolutions for cancellation
 const activeResolutions = new Map<string, AbortController>();
@@ -71,7 +69,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       let parsed: URL;
       try {
         parsed = new URL(info.srcUrl);
-      } catch {
+      } catch (err) {
+        console.debug('QR scan: Invalid URL:', err);
         throw new Error('Invalid URL');
       }
 

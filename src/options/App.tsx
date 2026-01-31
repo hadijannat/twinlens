@@ -21,90 +21,25 @@ import {
   getProviderPreset,
   PROVIDER_PRESETS,
 } from '@lib/ai/settings';
-
-// ============================================================================
-// Types
-// ============================================================================
-
-type ScanIntensity = 'none' | 'passive' | 'active';
-type Theme = 'system' | 'light' | 'dark';
-type SeverityOverride = 'default' | 'treat-warn-as-error' | 'treat-warn-as-info';
-type ValidationMode = 'strict' | 'lenient';
-
-interface GeneralSettings {
-  scanIntensity: ScanIntensity;
-  localOnlyMode: boolean;
-  theme: Theme;
-  compactMode: boolean;
-  validationMode: ValidationMode;
-}
-
-interface ComplianceSettings {
-  enabledRulePacks: string[];
-  severityOverride: SeverityOverride;
-  showFutureRules: boolean;
-}
-
-// ============================================================================
-// Storage Keys
-// ============================================================================
-
-const STORAGE_KEYS = {
-  general: 'twinlens_general_settings',
-  compliance: 'twinlens_compliance_settings',
-};
-
-// ============================================================================
-// Defaults
-// ============================================================================
-
-const DEFAULT_GENERAL: GeneralSettings = {
-  scanIntensity: 'passive',
-  localOnlyMode: false,
-  theme: 'system',
-  compactMode: false,
-  validationMode: 'strict',
-};
-
-const DEFAULT_COMPLIANCE: ComplianceSettings = {
-  enabledRulePacks: ['eu-battery-regulation'],
-  severityOverride: 'default',
-  showFutureRules: true,
-};
+import {
+  type GeneralSettings,
+  type ComplianceSettings,
+  type ScanIntensity,
+  type Theme,
+  type ValidationMode,
+  type SeverityOverride,
+  STORAGE_KEYS,
+  DEFAULT_GENERAL,
+  DEFAULT_COMPLIANCE,
+  loadSettings,
+  saveSettings,
+} from '@lib/settings';
 
 // Available rule packs
 const AVAILABLE_RULE_PACKS = [
   { id: 'eu-battery-regulation', name: 'EU Battery Regulation', description: 'Battery passport compliance (2023/1542) - 11 rules' },
   { id: 'weee-electronics', name: 'WEEE Electronics', description: 'Electronic waste directive (2012/19/EU) - 6 rules' },
 ];
-
-// ============================================================================
-// Storage Helpers
-// ============================================================================
-
-async function loadSettings<T>(key: string, defaults: T): Promise<T> {
-  try {
-    if (typeof chrome !== 'undefined' && chrome?.storage?.sync) {
-      const result = await chrome.storage.sync.get(key);
-      if (result[key]) {
-        return { ...defaults, ...result[key] };
-      }
-    }
-  } catch (err) {
-    console.warn(`Failed to load ${key}:`, err);
-  }
-  return defaults;
-}
-
-async function saveSettings<T>(key: string, settings: T): Promise<void> {
-  try {
-    if (typeof chrome !== 'undefined' && chrome?.storage?.sync) {
-      await chrome.storage.sync.set({ [key]: settings });
-    }
-  } catch (err) {
-    console.warn(`Failed to save ${key}:`, err);
-  }
-}
 
 // ============================================================================
 // Components
@@ -221,7 +156,8 @@ export default function App() {
         ]);
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2000);
-      } catch {
+      } catch (err) {
+        console.error('Failed to save settings:', err);
         setSaveStatus('error');
       }
     }, 500);

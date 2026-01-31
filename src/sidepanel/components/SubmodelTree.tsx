@@ -4,7 +4,7 @@
  * With template detection for specialized rendering
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   ChevronRight,
   ChevronDown,
@@ -20,6 +20,7 @@ import {
   List,
 } from 'lucide-react';
 import type { Submodel, SubmodelElement } from '@shared/types';
+import { ensureArray } from '@shared/utils';
 import { detectTemplate, TemplateType } from '@lib/templates/detector';
 import { NameplateView } from './templates/NameplateView';
 import { CarbonFootprintView } from './templates/CarbonFootprintView';
@@ -30,15 +31,7 @@ interface SubmodelTreeProps {
   submodels: Submodel[];
 }
 
-// Helper to safely convert to array
-function safeArray<T>(value: T | T[] | Record<string, T> | undefined | null): T[] {
-  if (!value) return [];
-  if (Array.isArray(value)) return value;
-  if (typeof value === 'object' && value !== null) {
-    return Object.values(value as Record<string, T>);
-  }
-  return [];
-}
+// ensureArray renamed to ensureArray and moved to @shared/utils
 
 interface TreeNodeProps {
   label: string;
@@ -58,21 +51,49 @@ function TreeNode({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const hasChildren = Boolean(children);
 
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!hasChildren) return;
+
+    switch (e.key) {
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        setIsExpanded(prev => !prev);
+        break;
+      case 'ArrowRight':
+        if (!isExpanded) {
+          e.preventDefault();
+          setIsExpanded(true);
+        }
+        break;
+      case 'ArrowLeft':
+        if (isExpanded) {
+          e.preventDefault();
+          setIsExpanded(false);
+        }
+        break;
+    }
+  }, [hasChildren, isExpanded]);
+
   return (
-    <div className="tree-item">
+    <div className="tree-item" role="treeitem" aria-expanded={hasChildren ? isExpanded : undefined}>
       <div
         className="tree-node"
         onClick={() => hasChildren && setIsExpanded(!isExpanded)}
+        onKeyDown={handleKeyDown}
+        tabIndex={hasChildren ? 0 : -1}
+        role={hasChildren ? 'button' : undefined}
+        aria-label={hasChildren ? `${label}${value ? `: ${value}` : ''}, ${isExpanded ? 'expanded' : 'collapsed'}` : undefined}
       >
-        <span className="tree-toggle">
+        <span className="tree-toggle" aria-hidden="true">
           {hasChildren &&
             (isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />)}
         </span>
-        <span className="tree-icon">{icon}</span>
+        <span className="tree-icon" aria-hidden="true">{icon}</span>
         <span className="tree-label">{label}</span>
         {value && <span className="tree-value">{value}</span>}
       </div>
-      {hasChildren && isExpanded && <div>{children}</div>}
+      {hasChildren && isExpanded && <div role="group">{children}</div>}
     </div>
   );
 }
@@ -143,12 +164,12 @@ function SubmodelElementNode({ element }: { element: SubmodelElement }) {
     element.modelType === 'SubmodelElementCollection' ||
     element.modelType === 'SubmodelElementList'
   ) {
-    children = safeArray(element.value);
+    children = ensureArray(element.value);
   }
 
   // Safely get entity statements
   const entityStatements =
-    element.modelType === 'Entity' ? safeArray(element.statements) : [];
+    element.modelType === 'Entity' ? ensureArray(element.statements) : [];
 
   const hasChildren = children.length > 0 || entityStatements.length > 0;
 
@@ -206,7 +227,7 @@ function renderTemplateView(type: TemplateType, submodel: Submodel): React.React
 }
 
 function SubmodelGenericTree({ submodel, index }: { submodel: Submodel; index: number }) {
-  const elements = safeArray(submodel.submodelElements);
+  const elements = ensureArray(submodel.submodelElements);
 
   return (
     <TreeNode
@@ -265,7 +286,7 @@ function SubmodelWithTemplate({ submodel, index }: { submodel: Submodel; index: 
 
 export function SubmodelTree({ submodels }: SubmodelTreeProps) {
   // Safely convert to array
-  const submodelList = safeArray(submodels);
+  const submodelList = ensureArray(submodels);
 
   if (submodelList.length === 0) {
     return (
@@ -279,7 +300,7 @@ export function SubmodelTree({ submodels }: SubmodelTreeProps) {
   }
 
   return (
-    <div className="tree">
+    <div className="tree" role="tree" aria-label="Submodels">
       {submodelList.map((submodel, index) => {
         // Defensive: ensure submodel is valid
         if (!submodel || typeof submodel !== 'object') {

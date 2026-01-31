@@ -28,6 +28,12 @@ import {
   mapValueType,
   mapMultiLanguageValue,
 } from './aas-v2-mapper';
+import { ensureArray } from '@shared/utils';
+import {
+  AASX_ORIGIN_REL_TYPE,
+  AAS_SPEC_REL_TYPE,
+  AAS_SUPPL_REL_TYPE,
+} from '@shared/constants';
 
 // ============================================================================
 // Types
@@ -44,17 +50,6 @@ interface OpcRelationships {
     Relationship?: OpcRelationship | OpcRelationship[];
   };
 }
-
-// ============================================================================
-// Constants
-// ============================================================================
-
-const AASX_ORIGIN_REL_TYPE =
-  'http://admin-shell.io/aasx/relationships/aasx-origin';
-const AAS_SPEC_REL_TYPE =
-  'http://admin-shell.io/aasx/relationships/aas-spec';
-const AAS_SUPPL_REL_TYPE =
-  'http://admin-shell.io/aasx/relationships/aas-suppl';
 
 const THUMBNAIL_PATHS = [
   'aasx/thumbnail.png',
@@ -152,15 +147,7 @@ function getZipFileSize(file: JSZip.JSZipObject): number | undefined {
 // Data Normalization (handles older AAS formats)
 // ============================================================================
 
-function ensureArray<T>(value: T | T[] | Record<string, T> | undefined | null): T[] {
-  if (!value) return [];
-  if (Array.isArray(value)) return value;
-  if (typeof value === 'object') {
-    // Convert object to array of values
-    return Object.values(value as Record<string, T>);
-  }
-  return [value];
-}
+// ensureArray is imported from @shared/utils
 
 function normalizeSubmodelElements(elements: unknown): unknown[] {
   if (!elements) return [];
@@ -178,6 +165,18 @@ function normalizeSubmodelElements(elements: unknown): unknown[] {
   return [];
 }
 
+/**
+ * Normalizes a raw AAS environment to ensure consistent structure.
+ *
+ * Handles both AAS v2 and v3 formats by:
+ * - Converting single objects or object-keyed data to arrays
+ * - Ensuring all AAS shells and submodels have proper modelType
+ * - Normalizing submodel elements (which may be nested objects in v2)
+ * - Conditionally including conceptDescriptions only when non-empty
+ *
+ * @param env - Partial or raw environment from JSON/XML parsing
+ * @returns Normalized AASEnvironment ready for validation and display
+ */
 function normalizeEnvironment(env: Partial<AASEnvironment>): AASEnvironment {
   // Note: Don't set empty arrays for optional properties like conceptDescriptions
   // The AAS spec requires these to be either absent or have at least one item
@@ -246,7 +245,22 @@ function isFileType(modelType: unknown): boolean {
   return modelType === 'File' || modelType === 'Blob';
 }
 
-// Transform a single element's value field based on modelType
+/**
+ * Transforms a submodel element's value field based on its modelType.
+ *
+ * Different AAS element types have different value formats:
+ * - Property/Range: string value (v2 may have number, converted to string)
+ * - MultiLanguageProperty: array of { language, text } (v2 uses { lang, #text })
+ * - SubmodelElementCollection/List: array of nested elements (recursively transformed)
+ * - File: path string
+ * - Blob: base64 content
+ *
+ * This handles v2→v3 conversion for value formats and recursively processes
+ * nested collections to ensure all elements are properly transformed.
+ *
+ * @param element - The submodel element with value and modelType
+ * @returns Transformed value appropriate for the element's modelType
+ */
 function transformElementValue(element: Record<string, unknown>): unknown {
   const { value, modelType } = element;
 
@@ -372,6 +386,23 @@ function transformXmlSubmodelElements(elements: unknown): unknown[] {
   }).filter(Boolean);
 }
 
+/**
+ * Transforms an XML-parsed AAS environment to normalized JSON format.
+ *
+ * XML AAS environments have a nested wrapper structure that differs from JSON:
+ * - `aasenv.assetAdministrationShells.assetAdministrationShell` (vs `assetAdministrationShells`)
+ * - `aasenv.submodels.submodel` (vs `submodels`)
+ * - Submodel elements wrapped in type tags: `{ property: {...} }` (vs `{ modelType: "Property", ... }`)
+ *
+ * This function:
+ * 1. Detects v2 vs v3 format and applies appropriate mappings
+ * 2. Unwraps nested container structures
+ * 3. Transforms XML type-tagged elements to modelType format
+ * 4. Ensures all elements have proper modelType set
+ *
+ * @param xmlData - Raw parsed XML data (from fast-xml-parser)
+ * @returns Normalized AASEnvironment matching JSON format
+ */
 function transformXmlEnvironment(xmlData: unknown): AASEnvironment {
   // XML environments have a different structure
   // This normalizes them to match the JSON format

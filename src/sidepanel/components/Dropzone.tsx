@@ -71,6 +71,7 @@ export function Dropzone({ onFileSelect }: DropzoneProps) {
       onClick={handleClick}
       role="button"
       tabIndex={0}
+      aria-label="Drop AASX file here or click to browse"
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           handleClick();

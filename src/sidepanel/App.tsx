@@ -19,6 +19,7 @@ import { AISettingsModal } from './components/AISettingsModal';
 import { useAASXParser } from './hooks/useAASXParser';
 import { useChat } from './hooks/useChat';
 import { useSettings } from './hooks/useSettings';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { compareStore } from '@lib/compare/store';
 import { fetchWithPermission } from '@lib/permissions';
 import { getProviderDisplayName } from '@lib/ai/settings';
@@ -51,7 +52,8 @@ function getFileNameFromUrl(url: string): string {
     const parsed = new URL(url);
     const name = parsed.pathname.split('/').pop();
     return name && name.trim().length > 0 ? name : 'download.aasx';
-  } catch {
+  } catch (err) {
+    console.debug('extractFilename: Invalid URL, using default:', err);
     return 'download.aasx';
   }
 }
@@ -78,62 +80,22 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isMod = e.metaKey || e.ctrlKey;
-
-      // Escape - close modals
-      if (e.key === 'Escape') {
-        if (showAISettings) {
-          setShowAISettings(false);
-          e.preventDefault();
-        } else if (showRegistryConnector) {
-          setShowRegistryConnector(false);
-          e.preventDefault();
-        } else if (pendingQR) {
-          setPendingQR(null);
-          e.preventDefault();
-        } else if (showPageFindings) {
-          setShowPageFindings(false);
-          e.preventDefault();
-        }
-        return;
-      }
-
-      if (!isMod) return;
-
-      // Ctrl/Cmd + O - Open file picker
-      if (e.key === 'o') {
-        e.preventDefault();
-        fileInputRef.current?.click();
-        return;
-      }
-
-      // Ctrl/Cmd + , - Open options page
-      if (e.key === ',') {
-        e.preventDefault();
-        if (chrome?.runtime?.openOptionsPage) {
-          chrome.runtime.openOptionsPage();
-        }
-        return;
-      }
-
-      // Ctrl/Cmd + 1-8 - Switch tabs
-      const num = parseInt(e.key, 10);
-      if (num >= 1 && num <= 8) {
-        e.preventDefault();
-        const hasFile = state.status === 'success';
-        const visibleTabs = TABS.filter(tab => tab.alwaysShow || hasFile);
-        const targetTab = visibleTabs[num - 1];
-        if (targetTab) {
-          setActiveTab(targetTab.id);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showAISettings, showRegistryConnector, pendingQR, showPageFindings, state.status]);
+  useKeyboardShortcuts({
+    modalState: {
+      showAISettings,
+      showRegistryConnector,
+      hasPendingQR: pendingQR !== null,
+      showPageFindings,
+    },
+    hasFile: state.status === 'success',
+    tabs: TABS,
+    fileInputRef,
+    onCloseAISettings: () => setShowAISettings(false),
+    onCloseRegistryConnector: () => setShowRegistryConnector(false),
+    onClosePendingQR: () => setPendingQR(null),
+    onClosePageFindings: () => setShowPageFindings(false),
+    onTabChange: setActiveTab,
+  });
 
   const handleFileSelect = (file: File) => {
     parseFile(file);

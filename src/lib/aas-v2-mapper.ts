@@ -11,18 +11,9 @@
  * - kind → assetKind
  */
 
-// ============================================================================
-// Utility Functions
-// ============================================================================
-
-/**
- * Ensures a value is always an array
- */
-export function ensureArray<T>(value: T | T[] | undefined | null): T[] {
-  if (!value) return [];
-  if (Array.isArray(value)) return value;
-  return [value];
-}
+// Import ensureArray from shared utils and re-export for backwards compatibility
+import { ensureArray } from '@shared/utils';
+export { ensureArray };
 
 /**
  * Extracts text value from XML element that may have attributes
