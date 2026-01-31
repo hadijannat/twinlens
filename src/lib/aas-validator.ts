@@ -7,6 +7,38 @@ import * as aas from '@aas-core-works/aas-core3.0-typescript';
 import type * as aasJsonization from '@aas-core-works/aas-core3.0-typescript/jsonization';
 import type { ValidationError } from '@shared/types';
 
+/**
+ * Pre-process JSON to fix common issues before validation
+ * Many real-world AASX files have minor spec deviations
+ */
+function preprocessEnvironment(jsonable: unknown): unknown {
+  if (!jsonable || typeof jsonable !== 'object') {
+    return jsonable;
+  }
+
+  const obj = jsonable as Record<string, unknown>;
+
+  // Process assetAdministrationShells
+  if (Array.isArray(obj.assetAdministrationShells)) {
+    obj.assetAdministrationShells = obj.assetAdministrationShells.map((shell) => {
+      if (shell && typeof shell === 'object') {
+        const s = shell as Record<string, unknown>;
+        // Fix assetInformation.globalAssetId if undefined/null
+        if (s.assetInformation && typeof s.assetInformation === 'object') {
+          const ai = s.assetInformation as Record<string, unknown>;
+          if (ai.globalAssetId === undefined || ai.globalAssetId === null) {
+            // Use a placeholder or derive from shell id
+            ai.globalAssetId = (s.id as string) || 'urn:unknown:asset';
+          }
+        }
+      }
+      return shell;
+    });
+  }
+
+  return obj;
+}
+
 // Re-export JsonValue type for use by other modules
 type JsonValue = aasJsonization.JsonValue;
 
@@ -50,9 +82,12 @@ export function validateAASEnvironment(
   const deserializationErrors: ValidationError[] = [];
   const verificationErrors: ValidationError[] = [];
 
+  // Pre-process to fix common issues in real-world files
+  const cleanedJsonable = preprocessEnvironment(jsonable);
+
   // Step 1: Try to deserialize (cast to JsonValue for type safety)
   const instanceOrError = aas.jsonization.environmentFromJsonable(
-    jsonable as JsonValue
+    cleanedJsonable as JsonValue
   );
 
   if (instanceOrError.error !== null) {
